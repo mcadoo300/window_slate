@@ -213,6 +213,9 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
     random_state: int = 12345
     dataset_name: str = "synthetic_slate_bandit_dataset"
 
+    # behavior logit for logging
+    behavior_logit = None
+
     def __post_init__(self) -> None:
         """Initialize Class."""
         check_scalar(self.n_unique_action, "n_unique_action", int, min_val=2)
@@ -799,6 +802,8 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                 action_context=self.action_context,
                 random_state=self.random_state,
             )
+        # set behavior policy logit to log
+        self.behavior_logit=behavior_policy_logit_
         # check the shape of behavior_policy_logit_
         if not (
             isinstance(behavior_policy_logit_, np.ndarray)
