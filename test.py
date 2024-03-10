@@ -20,10 +20,13 @@ print(obp.__version__)
 import warnings
 warnings.filterwarnings('ignore')
 
+#new imports
+from obp.ope.estimators_slate import SlateIndependentWindow
+
 # generate a synthetic bandit dataset with 10 actions
 # we use `logistic_reward_function` as the reward function and `linear_behavior_policy_logit` as the behavior policy.
 # one can define their own reward function and behavior policy such as nonlinear ones. 
-logging=True
+logging=False
 n_unique_action=10
 len_list = 3
 dim_context = 2
@@ -34,7 +37,7 @@ random_state=12345
 base_reward_function=logistic_reward_function
 
 # obtain  test sets of synthetic logged bandit data
-n_rounds_test = 1
+n_rounds_test = 1000
 
 
 
@@ -83,8 +86,8 @@ base_expected_reward = dataset_with_random_behavior.base_reward_function(
     random_state=dataset_with_random_behavior.random_state,
 )
 
-optimal_policy_logit_ = base_expected_reward * 3
-anti_optimal_policy_logit_ = -3 * base_expected_reward
+optimal_policy_logit_ = base_expected_reward * 1
+anti_optimal_policy_logit_ = -1 * base_expected_reward
 if logging:
     pdb.set_trace()
     evaluation_logits=[random_policy_logit_[0],optimal_policy_logit_[0],anti_optimal_policy_logit_[0]]
@@ -121,10 +124,12 @@ if logging:
 sips = SlateStandardIPS(len_list=len_list)
 iips = SlateIndependentIPS(len_list=len_list)
 rips = SlateRewardInteractionIPS(len_list=len_list)
+wips = SlateIndependentWindow(len_list=len_list)
+
 
 ope = SlateOffPolicyEvaluation(
     bandit_feedback=bandit_feedback_with_random_behavior,
-    ope_estimators=[sips, iips, rips]
+    ope_estimators=[sips, iips, rips, wips]
 )
 
 #pdb.set_trace()
@@ -134,7 +139,8 @@ _, estimated_interval_random = ope.summarize_off_policy_estimates(
     evaluation_policy_pscore_cascade=random_policy_pscores[2],
     alpha=0.05,
     n_bootstrap_samples=1000,
-    random_state=dataset_with_random_behavior.random_state
+    random_state=dataset_with_random_behavior.random_state,
+    evaluation_policy_pscore_idp_window=random_policy_pscores[3]
 )
 estimated_interval_random["policy_name"] = "random"
 
@@ -147,7 +153,8 @@ ope.visualize_off_policy_estimates(
     evaluation_policy_pscore_cascade=random_policy_pscores[2],
     alpha=0.05,
     n_bootstrap_samples=1000, # number of resampling performed in bootstrap sampling
-    random_state=dataset_with_random_behavior.random_state
+    random_state=dataset_with_random_behavior.random_state,
+    evaluation_policy_pscore_idp_window=random_policy_pscores[3]
 )
 #pdb.set_trace()
 
@@ -157,7 +164,8 @@ _, estimated_interval_optimal = ope.summarize_off_policy_estimates(
     evaluation_policy_pscore_cascade=optimal_policy_pscores[2],
     alpha=0.05,
     n_bootstrap_samples=1000,
-    random_state=dataset_with_random_behavior.random_state
+    random_state=dataset_with_random_behavior.random_state,
+    evaluation_policy_pscore_idp_window=optimal_policy_pscores[3]
 )
 
 estimated_interval_optimal["policy_name"] = "optimal"
@@ -171,7 +179,8 @@ ope.visualize_off_policy_estimates(
     evaluation_policy_pscore_cascade=optimal_policy_pscores[2],
     alpha=0.05,
     n_bootstrap_samples=1000, # number of resampling performed in bootstrap sampling
-    random_state=dataset_with_random_behavior.random_state
+    random_state=dataset_with_random_behavior.random_state,
+    evaluation_policy_pscore_idp_window=optimal_policy_pscores[3]
 )
 
 _, estimated_interval_anti_optimal = ope.summarize_off_policy_estimates(
@@ -180,7 +189,8 @@ _, estimated_interval_anti_optimal = ope.summarize_off_policy_estimates(
     evaluation_policy_pscore_cascade=anti_optimal_policy_pscores[2],
     alpha=0.05,
     n_bootstrap_samples=1000,
-    random_state=dataset_with_random_behavior.random_state
+    random_state=dataset_with_random_behavior.random_state,
+    evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3]
 )
 estimated_interval_anti_optimal["policy_name"] = "anti-optimal"
 
@@ -193,7 +203,8 @@ ope.visualize_off_policy_estimates(
     evaluation_policy_pscore_cascade=anti_optimal_policy_pscores[2],
     alpha=0.05,
     n_bootstrap_samples=1000, # number of resampling performed in bootstrap sampling
-    random_state=dataset_with_random_behavior.random_state
+    random_state=dataset_with_random_behavior.random_state,
+    evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3]
 )
 
 ground_truth_policy_value_random = dataset_with_random_behavior.calc_ground_truth_policy_value(
@@ -237,7 +248,8 @@ relative_ee_for_random_evaluation_policy = ope.summarize_estimators_comparison(
     ground_truth_policy_value=ground_truth_policy_value_random,
     evaluation_policy_pscore=random_policy_pscores[0],
     evaluation_policy_pscore_item_position=random_policy_pscores[1],
-    evaluation_policy_pscore_cascade=random_policy_pscores[2]
+    evaluation_policy_pscore_cascade=random_policy_pscores[2],
+    evaluation_policy_pscore_idp_window=random_policy_pscores[3]
 )
 #pdb.set_trace()
 print(relative_ee_for_random_evaluation_policy)
@@ -250,7 +262,8 @@ relative_ee_for_optimal_evaluation_policy = ope.summarize_estimators_comparison(
     ground_truth_policy_value=ground_truth_policy_value_optimal,
     evaluation_policy_pscore=optimal_policy_pscores[0],
     evaluation_policy_pscore_item_position=optimal_policy_pscores[1],
-    evaluation_policy_pscore_cascade=optimal_policy_pscores[2]
+    evaluation_policy_pscore_cascade=optimal_policy_pscores[2],
+    evaluation_policy_pscore_idp_window=optimal_policy_pscores[3]
 )
 print(relative_ee_for_optimal_evaluation_policy)
 
@@ -262,7 +275,8 @@ relative_ee_for_anti_optimal_evaluation_policy = ope.summarize_estimators_compar
     ground_truth_policy_value=ground_truth_policy_value_anti_optimal,
     evaluation_policy_pscore=anti_optimal_policy_pscores[0],
     evaluation_policy_pscore_item_position=anti_optimal_policy_pscores[1],
-    evaluation_policy_pscore_cascade=anti_optimal_policy_pscores[2]
+    evaluation_policy_pscore_cascade=anti_optimal_policy_pscores[2],
+    evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3]
 )
 print(relative_ee_for_anti_optimal_evaluation_policy)
 

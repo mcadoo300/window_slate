@@ -429,6 +429,7 @@ class SlateOffPolicyEvaluation:
         random_state: Optional[int] = None,
         fig_dir: Optional[Path] = None,
         fig_name: str = "estimated_policy_value.png",
+        evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None
     ) -> None:
         """Visualize the estimated policy values.
 
@@ -490,6 +491,7 @@ class SlateOffPolicyEvaluation:
             alpha=alpha,
             n_bootstrap_samples=n_bootstrap_samples,
             random_state=random_state,
+            evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window,
         )
         estimated_interval_a["errbar_length"] = (
             estimated_interval_a.drop("mean", axis=1).diff(axis=1).iloc[:, -1].abs()
@@ -535,6 +537,7 @@ class SlateOffPolicyEvaluation:
         evaluation_policy_action_dist: Optional[np.ndarray] = None,
         q_hat: Optional[np.ndarray] = None,
         metric: str = "se",
+        evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None,
     ) -> Dict[str, float]:
         """Evaluate the accuracy of OPE estimators.
 
@@ -608,6 +611,7 @@ class SlateOffPolicyEvaluation:
             evaluation_policy_pscore_cascade=evaluation_policy_pscore_cascade,
             evaluation_policy_action_dist=evaluation_policy_action_dist,
             q_hat=q_hat,
+            evaluation_policy_pscore_idp_window= evaluation_policy_pscore_idp_window,
         )
         for estimator_name, estimator in self.ope_estimators_.items():
             estimated_policy_value = estimator.estimate_policy_value(**estimator_inputs)
@@ -629,6 +633,7 @@ class SlateOffPolicyEvaluation:
         evaluation_policy_action_dist: Optional[np.ndarray] = None,
         q_hat: Optional[np.ndarray] = None,
         metric: str = "se",
+        evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None,
     ) -> DataFrame:
         """Summarize the performance comparison among OPE estimators.
 
@@ -678,6 +683,7 @@ class SlateOffPolicyEvaluation:
                 evaluation_policy_action_dist=evaluation_policy_action_dist,
                 q_hat=q_hat,
                 metric=metric,
+                evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window,
             ),
             index=[metric],
         )
