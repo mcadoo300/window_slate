@@ -240,6 +240,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
             "independent",
             "standard_additive",
             "standard_decay",
+            "window_additive",
         ]:
             raise ValueError(
                 f"`reward_structure` must be one of 'cascade_additive', 'cascade_decay', 'independent', 'standard_additive', or 'standard_decay', but {self.reward_structure} is given."
@@ -271,7 +272,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
             )
         if self.base_reward_function is not None:
             self.reward_function = action_interaction_reward_function
-        if self.reward_structure in ["cascade_additive", "standard_additive"]:
+        if self.reward_structure in ["cascade_additive", "standard_additive", "window_additive"]:
             # generate additive action interaction weight matrix of (n_unique_action, n_unique_action)
             self.action_interaction_weight_matrix = generate_symmetric_matrix(
                 n_unique_action=self.n_unique_action, random_state=self.random_state
@@ -1435,13 +1436,15 @@ def action_interaction_reward_function(
         "standard_decay",
         "cascade_decay",
         "independent",
+        "window_additive",
     ]:
         raise ValueError(
             f"`reward_structure` must be either 'standard_additive', 'cascade_additive', 'standard_decay' or 'cascade_decay', but {reward_structure} is given."
         )
 
-    is_additive = reward_structure in ["standard_additive", "cascade_additive"]
+    is_additive = reward_structure in ["standard_additive", "cascade_additive", "window_additive"]
     is_cascade = reward_structure in ["cascade_additive", "cascade_decay"]
+    is_window = reward_structure in ["window_additive"]
 
     if is_additive:
         if action_interaction_weight_matrix.shape != (
@@ -1474,6 +1477,9 @@ def action_interaction_reward_function(
     if reward_type == "binary":
         expected_reward = logit(expected_reward)
     expected_reward_factual = np.zeros_like(action_2d, dtype="float16")
+
+    #track how many items are in window
+    num_items=1
     for pos_ in np.arange(len_list):
         tmp_fixed_reward = expected_reward[
             np.arange(len(action_2d)) // n_enumerated_slate_actions,
@@ -1486,11 +1492,28 @@ def action_interaction_reward_function(
                 if is_cascade:
                     if pos_ <= pos2_:
                         break
+                elif is_window:
+                    if pos2_ > pos_ + 1:
+                        break
                 elif pos_ == pos2_:
                     continue
-                tmp_fixed_reward += action_interaction_weight_matrix[
-                    action_2d[:, pos_], action_2d[:, pos2_]
-                ]
+                if is_window:
+                    if pos_ -1 == pos2_  or pos2_ == pos_ +1:
+                        #pdb.set_trace()
+                        #tmp_fixed_reward += action_interaction_weight_matrix[
+                        #    action_2d[:, pos_], action_2d[:, pos2_]
+                        #]
+                        num_items+=1
+                        tmp_fixed_reward += expected_reward[
+                            np.arange(len(action_2d)) // n_enumerated_slate_actions,
+                            action_2d[:, pos2_],
+                            ]
+                    elif pos2_ > pos_ +1:
+                        break
+                else:
+                    tmp_fixed_reward += action_interaction_weight_matrix[
+                        action_2d[:, pos_], action_2d[:, pos2_]
+                    ]
         else:
             for pos2_ in np.arange(len_list):
                 if is_cascade:
@@ -1504,7 +1527,10 @@ def action_interaction_reward_function(
                 ]
                 weight_ = action_interaction_weight_matrix[pos_, pos2_]
                 tmp_fixed_reward += expected_reward_ * weight_
-        expected_reward_factual[:, pos_] = tmp_fixed_reward
+        if is_window:
+            expected_reward_factual[:, pos_] = tmp_fixed_reward * (1/num_items)
+        else:
+            expected_reward_factual[:, pos_] = tmp_fixed_reward
 
     if reward_type == "binary":
         expected_reward_factual = sigmoid(expected_reward_factual)
