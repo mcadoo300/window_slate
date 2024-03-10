@@ -532,6 +532,37 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
 
         return pscore, pscore_item_position, pscore_cascade
 
+
+    def obtain_idp_window_pscore_given_policy_logit(
+        self,
+        action: np.ndarray,
+        evaluation_policy_logit_: np.ndarray,
+        window_range: int,
+    ):
+        n_rounds = action.reshape((-1, self.len_list)).shape[0]
+        pscore_idp_window = np.zeros(n_rounds * self.len_list)
+        for i in tqdm(
+            np.arange(n_rounds),
+            desc="[obtain_idp_window_pscore_given_evaluation_policy_logit]",
+            total=n_rounds,
+        ):
+            unique_action_set = np.arange(self.n_unique_action)
+            score_ = softmax(evaluation_policy_logit_[i : i + 1])[0]
+            for pos_ in np.arange(self.len_list):
+                # get lower and upper ends of window
+                lower = max(0,pos_ - window_range)
+                upper = min(self.len_list-1,pos_+window_range)
+                unique_action_set = np.arange(self.n_unique_action)
+                window_actions = [action[i*self.len_list + pos_w] for pos_w in range(lower,upper+1)]
+                pscore_i = 1.0
+                for action_ in window_actions:
+                    # get index of action taken
+                    action_index_ = np.where(unique_action_set == action_)[0][0]
+                    pscore_i *= score_[action_index_] # multiply pscore
+                pscore_idp_window[i * self.len_list + pos_] = pscore_i
+        return pscore_idp_window
+
+
     def sample_action_and_obtain_pscore(
         self,
         behavior_policy_logit_: np.ndarray,
@@ -1548,3 +1579,4 @@ def inverse_decay_function(distance: np.ndarray) -> np.ndarray:
     check_array(array=distance, name="distance", expected_dim=1)
 
     return 1 / (distance + 1)
+
