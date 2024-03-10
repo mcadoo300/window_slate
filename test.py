@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 # generate a synthetic bandit dataset with 10 actions
 # we use `logistic_reward_function` as the reward function and `linear_behavior_policy_logit` as the behavior policy.
 # one can define their own reward function and behavior policy such as nonlinear ones. 
-
+logging=True
 n_unique_action=10
 len_list = 3
 dim_context = 2
@@ -56,18 +56,18 @@ bandit_feedback_with_random_behavior = dataset_with_random_behavior.obtain_batch
     n_rounds=n_rounds_test,
     return_pscore_item_position=True,
 )
-#pdb.set_trace()
-print(dataset_with_random_behavior.behavior_logit)
-print(bandit_feedback_with_random_behavior)
-behavior_pscores=[dataset_with_random_behavior.behavior_logit,
-        bandit_feedback_with_random_behavior["pscore_cascade"],
-          bandit_feedback_with_random_behavior["pscore"],
-          bandit_feedback_with_random_behavior["pscore_item_position"]]
-print(behavior_pscores)
-rows=['behavior logit','Cascade','standard','independent']
-df = pd.DataFrame(behavior_pscores,index=rows)
-df.to_excel('behavior_pscores.xlsx')
-#pdb.set_trace()
+if logging:
+    pdb.set_trace()
+    print(bandit_feedback_with_random_behavior)
+    behavior_pscores=[dataset_with_random_behavior.behavior_logit,
+            bandit_feedback_with_random_behavior["pscore_cascade"],
+            bandit_feedback_with_random_behavior["pscore"],
+            bandit_feedback_with_random_behavior["pscore_item_position"],
+            bandit_feedback_with_random_behavior["pscore_idp_window"]]
+    print(behavior_pscores)
+    rows=['behavior logit','Cascade','standard','independent','independent window']
+    df = pd.DataFrame(behavior_pscores,index=rows)
+    df.to_excel('behavior_pscores.xlsx')
 # print policy value
 random_policy_value = dataset_with_random_behavior.calc_on_policy_policy_value(
     reward=bandit_feedback_with_random_behavior["reward"],
@@ -85,19 +85,19 @@ base_expected_reward = dataset_with_random_behavior.base_reward_function(
 
 optimal_policy_logit_ = base_expected_reward * 3
 anti_optimal_policy_logit_ = -3 * base_expected_reward
-pdb.set_trace()
-evaluation_logits=[random_policy_logit_[0],optimal_policy_logit_[0],anti_optimal_policy_logit_[0]]
-print(evaluation_logits)
-rows=['random','optimal','anti-optimal']
-df = pd.DataFrame(evaluation_logits,index=rows)
-df.to_excel('evaluation_logits.xlsx')
+if logging:
+    pdb.set_trace()
+    evaluation_logits=[random_policy_logit_[0],optimal_policy_logit_[0],anti_optimal_policy_logit_[0]]
+    print(evaluation_logits)
+    rows=['random','optimal','anti-optimal']
+    df = pd.DataFrame(evaluation_logits,index=rows)
+    df.to_excel('evaluation_logits.xlsx')
 
 
 random_policy_pscores = dataset_with_random_behavior.obtain_pscore_given_evaluation_policy_logit(
     action=bandit_feedback_with_random_behavior["action"],
     evaluation_policy_logit_=random_policy_logit_
 )
-
 optimal_policy_pscores = dataset_with_random_behavior.obtain_pscore_given_evaluation_policy_logit(
     action=bandit_feedback_with_random_behavior["action"],
     evaluation_policy_logit_=optimal_policy_logit_
@@ -107,13 +107,14 @@ anti_optimal_policy_pscores = dataset_with_random_behavior.obtain_pscore_given_e
     action=bandit_feedback_with_random_behavior["action"],
     evaluation_policy_logit_=anti_optimal_policy_logit_
 )
-pdb.set_trace()
-print(random_policy_pscores)
-evaluation_pscores=[random_policy_pscores,optimal_policy_pscores,anti_optimal_policy_pscores]
-print(evaluation_pscores)
-rows=['logit','random','optimal','anti-optimal']
-df = pd.DataFrame(evaluation_pscores,index=rows,columns=["standard","independent","cascade"])
-df.to_excel('evaluation_pscores.xlsx')
+if logging:
+    pdb.set_trace()
+    print(random_policy_pscores)
+    evaluation_pscores=[random_policy_pscores,optimal_policy_pscores,anti_optimal_policy_pscores]
+    print(evaluation_pscores)
+    rows=['random','optimal','anti-optimal']
+    df = pd.DataFrame(evaluation_pscores,index=rows,columns=["standard","independent","cascade", "window"])
+    df.to_excel('evaluation_pscores.xlsx')
 # estimate the policy value of the evaluation policies based on their action choice probabilities
 # it is possible to set multiple OPE estimators to the `ope_estimators` argument
 
