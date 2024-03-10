@@ -485,6 +485,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
             evaluation_policy_softmax_ = np.exp(
                 np.minimum(evaluation_policy_logit_, clip_logit_value)
             )
+        pscore_idp_window = self.obtain_idp_window_pscore_given_policy_logit(action,evaluation_policy_logit_,1)
         for i in tqdm(
             np.arange(n_rounds),
             desc="[obtain_pscore_given_evaluation_policy_logit]",
@@ -533,7 +534,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
             end_idx = start_idx + self.len_list
             pscore[start_idx:end_idx] = pscore_i
 
-        return pscore, pscore_item_position, pscore_cascade
+        return pscore, pscore_item_position, pscore_cascade, pscore_idp_window
 
 
     def obtain_idp_window_pscore_given_policy_logit(
@@ -546,7 +547,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
         pscore_idp_window = np.zeros(n_rounds * self.len_list)
         for i in tqdm(
             np.arange(n_rounds),
-            desc="[obtain_idp_window_pscore_given_evaluation_policy_logit]",
+            desc="[obtain_idp_window_pscore_given_policy_logit]",
             total=n_rounds,
         ):
             unique_action_set = np.arange(self.n_unique_action)
@@ -691,8 +692,8 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
             start_idx = i * self.len_list
             end_idx = start_idx + self.len_list
             pscore[start_idx:end_idx] = pscore_i
-
-        return action, pscore_cascade, pscore, pscore_item_position
+        pscore_idp_window = self.obtain_idp_window_pscore_given_policy_logit(action,behavior_policy_logit_,1)
+        return action, pscore_cascade, pscore, pscore_item_position, pscore_idp_window
 
     def sample_contextfree_expected_reward(
         self, random_state: Optional[int] = None
@@ -816,6 +817,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
             pscore_cascade,
             pscore,
             pscore_item_position,
+            pscore_idp_window
         ) = self.sample_action_and_obtain_pscore(
             behavior_policy_logit_=behavior_policy_logit_,
             n_rounds=n_rounds,
@@ -873,6 +875,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
             pscore_cascade=pscore_cascade,
             pscore=pscore,
             pscore_item_position=pscore_item_position,
+            pscore_idp_window=pscore_idp_window
         )
 
     def calc_on_policy_policy_value(
