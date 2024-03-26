@@ -537,6 +537,48 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
 
         return pscore, pscore_item_position, pscore_cascade, pscore_idp_window
 
+    def obtain_idp_window_pscore_given_policy_logit_normalized(
+        self,
+        action: np.ndarray,
+        evaluation_policy_logit_: np.ndarray,
+        window_range: int,
+    ):
+        n_rounds = action.reshape((-1, self.len_list)).shape[0]
+        pscore_idp_window_norm = np.zeros(n_rounds * self.len_list)
+        for i in tqdm(
+            np.arange(n_rounds),
+            desc="[obtain_idp_window_pscore_given_policy_logit]",
+            total=n_rounds,
+        ):
+            unique_action_set = np.arange(self.n_unique_action)
+            for pos_ in np.arange(self.len_list):
+                score_ = softmax(evaluation_policy_logit_[i : i + 1])[0]
+                # get lower and upper ends of window
+                lower = max(0,pos_ - window_range)
+                upper = min(self.len_list-1,pos_+window_range)
+                unique_action_set = np.arange(self.n_unique_action)
+                window_actions = [action[i*self.len_list + pos_w] for pos_w in range(lower,upper+1)]
+                pscore_i = 1.0
+                #pdb.set_trace()
+                #print(f"original score: {score_} \n original pscore_i: {pscore_i}")
+                #print(f"window actions: {window_actions}")
+                for action_ in window_actions:
+                    # get index of action taken
+                    action_index_ = np.where(unique_action_set == action_)[0][0]
+                    pscore_i *= score_[action_index_] # multiply pscore
+                    # update the pscore given the remaining items for nonfactorizable policy
+                    if not self.is_factorizable and pos_ != self.len_list - 1:
+                        unique_action_set = np.delete(
+                            unique_action_set, unique_action_set == action_
+                        )
+                        score_ = softmax(
+                            evaluation_policy_logit_[i : i + 1, unique_action_set]
+                        )[0]
+                    #pdb.set_trace()
+                    #print(evaluation_policy_logit_[i : i + 1, unique_action_set])
+                    #print(f"updated score: {score_} \n updated pscore_i: {pscore_i}")
+                pscore_idp_window_norm[i * self.len_list + pos_] = pscore_i
+        return pscore_idp_window_norm
 
     def obtain_idp_window_pscore_given_policy_logit(
         self,
