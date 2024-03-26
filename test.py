@@ -58,22 +58,22 @@ anti_iips_se=0
 anti_rips_se=0
 anti_wips_se=0
 
-num_seed=10000
+num_seed=12345
 
-for seed in range(num_seed):
+for seed in range(1):
     logging=False
     epsilon=0.5
     n_unique_action=10
-    len_list = 5
+    len_list = 4
     dim_context = 2
     reward_type = "binary"
     reward_structure="window_additive"
     click_model=None
-    random_state=seed
+    random_state=12345
     base_reward_function=logistic_reward_function
 
     # obtain  test sets of synthetic logged bandit data
-    n_rounds_test = 1000
+    n_rounds_test = 3000
 
 
 
@@ -314,7 +314,9 @@ for seed in range(num_seed):
         evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3]
     
     )
-    
+    print(relative_ee_for_random_evaluation_policy)
+    print(relative_ee_for_optimal_evaluation_policy)
+    print(relative_ee_for_anti_optimal_evaluation_policy)
     rand_sips_se+=relative_ee_for_random_evaluation_policy.loc["sips"]["se"]
     rand_iips_se+=relative_ee_for_random_evaluation_policy.loc["iips"]["se"]
     rand_rips_se+=relative_ee_for_random_evaluation_policy.loc["rips"]["se"]
