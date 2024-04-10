@@ -64,7 +64,7 @@ for setting in range(1):
     logging=False
     epsilon=0.5
     n_unique_action=10
-    len_list = 4
+    len_list = 3
     dim_context = 2
     reward_type = "binary"
     reward_structure="window_additive"
@@ -73,7 +73,7 @@ for setting in range(1):
     base_reward_function=logistic_reward_function
 
     # obtain  test sets of synthetic logged bandit data
-    n_rounds_test = 500
+    n_rounds_test = 5
 
 
 
