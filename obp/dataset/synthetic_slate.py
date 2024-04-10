@@ -24,6 +24,7 @@ from ..utils import sigmoid
 from ..utils import softmax
 from .base import BaseBanditDataset
 
+import pdb
 
 @dataclass
 class SyntheticSlateBanditDataset(BaseBanditDataset):
@@ -375,7 +376,6 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                 unique_action_set_2d = unique_action_set_2d[mask.astype(bool)].reshape(
                     (-1, self.n_unique_action - pos_ - 1)
                 )
-
         return pscores
 
     def _calc_pscore_given_policy_softmax(
@@ -487,6 +487,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                 np.minimum(evaluation_policy_logit_, clip_logit_value)
             )
         pscore_idp_window = self.obtain_idp_window_pscore_given_policy_logit(action,evaluation_policy_logit_,1)
+        pscore_idp_window_normalized = self.obtain_idp_window_pscore_given_policy_logit_normalized(action,evaluation_policy_logit_,1)
         for i in tqdm(
             np.arange(n_rounds),
             desc="[obtain_pscore_given_evaluation_policy_logit]",
@@ -511,6 +512,9 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                     )[0]
                 # calculate pscore_item_position
                 if return_pscore_item_position:
+                    #pdb.set_trace()
+                    #print(score_)
+
                     if pos_ == 0:
                         pscore_item_pos_i_l = pscore_i
                     elif self.is_factorizable:
@@ -529,13 +533,15 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                         pscore_item_pos_i_l = pscores[
                             enumerated_slate_actions[:, pos_] == action_
                         ].sum()
+                    #pdb.set_trace()
+                    #print(pscore_item_pos_i_l)
                     pscore_item_position[i * self.len_list + pos_] = pscore_item_pos_i_l
             # impute joint pscore
             start_idx = i * self.len_list
             end_idx = start_idx + self.len_list
             pscore[start_idx:end_idx] = pscore_i
 
-        return pscore, pscore_item_position, pscore_cascade, pscore_idp_window
+        return pscore, pscore_item_position, pscore_cascade, pscore_idp_window, pscore_idp_window_normalized
 
     def obtain_idp_window_pscore_given_policy_logit_normalized(
         self,
@@ -551,6 +557,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
             total=n_rounds,
         ):
             unique_action_set = np.arange(self.n_unique_action)
+            window_range=0
             for pos_ in np.arange(self.len_list):
                 score_ = softmax(evaluation_policy_logit_[i : i + 1])[0]
                 # get lower and upper ends of window
@@ -560,23 +567,23 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                 window_actions = [action[i*self.len_list + pos_w] for pos_w in range(lower,upper+1)]
                 pscore_i = 1.0
                 #pdb.set_trace()
-                #print(f"original score: {score_} \n original pscore_i: {pscore_i}")
-                #print(f"window actions: {window_actions}")
+                #print(action)
+                #print(window_actions)
                 for action_ in window_actions:
                     # get index of action taken
                     action_index_ = np.where(unique_action_set == action_)[0][0]
                     pscore_i *= score_[action_index_] # multiply pscore
                     # update the pscore given the remaining items for nonfactorizable policy
-                    if not self.is_factorizable and pos_ != self.len_list - 1:
+                    if not self.is_factorizable:
                         unique_action_set = np.delete(
                             unique_action_set, unique_action_set == action_
                         )
                         score_ = softmax(
                             evaluation_policy_logit_[i : i + 1, unique_action_set]
                         )[0]
-                    #pdb.set_trace()
-                    #print(evaluation_policy_logit_[i : i + 1, unique_action_set])
-                    #print(f"updated score: {score_} \n updated pscore_i: {pscore_i}")
+                        #print(score_)
+                        #print(pscore_i)
+                #print(pscore_i)
                 pscore_idp_window_norm[i * self.len_list + pos_] = pscore_i
         return pscore_idp_window_norm
 
@@ -588,6 +595,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
     ):
         n_rounds = action.reshape((-1, self.len_list)).shape[0]
         pscore_idp_window = np.zeros(n_rounds * self.len_list)
+        window_range=5
         for i in tqdm(
             np.arange(n_rounds),
             desc="[obtain_idp_window_pscore_given_policy_logit]",
@@ -595,6 +603,9 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
         ):
             unique_action_set = np.arange(self.n_unique_action)
             score_ = softmax(evaluation_policy_logit_[i : i + 1])[0]
+            #pdb.set_trace()
+            #print(score_)
+            #print(action)
             for pos_ in np.arange(self.len_list):
                 # get lower and upper ends of window
                 lower = max(0,pos_ - window_range)
@@ -602,10 +613,14 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                 unique_action_set = np.arange(self.n_unique_action)
                 window_actions = [action[i*self.len_list + pos_w] for pos_w in range(lower,upper+1)]
                 pscore_i = 1.0
+                #pdb.set_trace()
+                #print(window_actions)
                 for action_ in window_actions:
                     # get index of action taken
                     action_index_ = np.where(unique_action_set == action_)[0][0]
                     pscore_i *= score_[action_index_] # multiply pscore
+                    #pdb.set_trace()
+                    #print(pscore_i)
                 pscore_idp_window[i * self.len_list + pos_] = pscore_i
         return pscore_idp_window
 
@@ -699,6 +714,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                 ]
                 # calculate joint pscore
                 pscore_i *= score_[sampled_action_index]
+                #print(f"score: {score_}")
                 pscore_cascade[i * self.len_list + pos_] = pscore_i
                 # update the pscore given the remaining items for nonfactorizable behavior policy
                 if not self.is_factorizable and pos_ != self.len_list - 1:
@@ -723,20 +739,30 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                                 policy_softmax_i_=behavior_policy_softmax_[i],
                             )
                         else:
+                            #pdb.set_trace()
+                            #print(score_)
                             pscores = self._calc_pscore_given_policy_logit(
                                 all_slate_actions=enumerated_slate_actions,
                                 policy_logit_i_=behavior_policy_logit_[i],
                             )
+                            #print(pscores)
+                        """pdb.set_trace()
+                        print(pos_)
+                        print(pscores[
+                            enumerated_slate_actions[:, pos_] == sampled_action
+                        ])"""
                         pscore_item_pos_i_l = pscores[
                             enumerated_slate_actions[:, pos_] == sampled_action
                         ].sum()
+                    #print(pscore_item_pos_i_l)
                     pscore_item_position[i * self.len_list + pos_] = pscore_item_pos_i_l
             # impute joint pscore
             start_idx = i * self.len_list
             end_idx = start_idx + self.len_list
             pscore[start_idx:end_idx] = pscore_i
         pscore_idp_window = self.obtain_idp_window_pscore_given_policy_logit(action,behavior_policy_logit_,1)
-        return action, pscore_cascade, pscore, pscore_item_position, pscore_idp_window
+        pscore_idp_window_normal = self.obtain_idp_window_pscore_given_policy_logit_normalized(action,behavior_policy_logit_,1)
+        return action, pscore_cascade, pscore, pscore_item_position, pscore_idp_window, pscore_idp_window_normal
 
     def sample_contextfree_expected_reward(
         self, random_state: Optional[int] = None
@@ -860,7 +886,8 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
             pscore_cascade,
             pscore,
             pscore_item_position,
-            pscore_idp_window
+            pscore_idp_window,
+            pscore_idp_window_normal
         ) = self.sample_action_and_obtain_pscore(
             behavior_policy_logit_=behavior_policy_logit_,
             n_rounds=n_rounds,
@@ -918,7 +945,8 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
             pscore_cascade=pscore_cascade,
             pscore=pscore,
             pscore_item_position=pscore_item_position,
-            pscore_idp_window=pscore_idp_window
+            pscore_idp_window=pscore_idp_window,
+            pscore_idp_window_normal=pscore_idp_window_normal
         )
 
     def calc_on_policy_policy_value(
@@ -1523,14 +1551,24 @@ def action_interaction_reward_function(
     #track how many items are in window
     num_items=1
     for pos_ in np.arange(len_list):
+        #pdb.set_trace()
+        #print(pos_)
+        #print(expected_reward)
+        #print(expected_reward_factual)
+        #print(n_enumerated_slate_actions)
+        #print(action_2d)
         tmp_fixed_reward = expected_reward[
             np.arange(len(action_2d)) // n_enumerated_slate_actions,
             action_2d[:, pos_],
         ]
+        #print(tmp_fixed_reward)
         if reward_structure == "independent":
             pass
         elif is_additive:
+            #pdb.set_trace()
             for pos2_ in np.arange(len_list):
+                #pdb.set_trace()
+                #print(pos2_)
                 if is_cascade:
                     if pos_ <= pos2_:
                         break
@@ -1540,16 +1578,20 @@ def action_interaction_reward_function(
                 elif pos_ == pos2_:
                     continue
                 if is_window:
+                    #print(pos2_)
                     if pos_ -1 == pos2_  or pos2_ == pos_ +1:
-                        #pdb.set_trace()
+                        
                         #tmp_fixed_reward += action_interaction_weight_matrix[
                         #    action_2d[:, pos_], action_2d[:, pos2_]
                         #]
                         num_items+=1
+                        #pdb.set_trace()
+                        #print(tmp_fixed_reward)
                         tmp_fixed_reward += expected_reward[
                             np.arange(len(action_2d)) // n_enumerated_slate_actions,
                             action_2d[:, pos2_],
                             ]
+                        #print(tmp_fixed_reward)
                     elif pos2_ > pos_ +1:
                         break
                 else:
@@ -1570,7 +1612,11 @@ def action_interaction_reward_function(
                 weight_ = action_interaction_weight_matrix[pos_, pos2_]
                 tmp_fixed_reward += expected_reward_ * weight_
         if is_window:
+            #pdb.set_trace()
+            #print(tmp_fixed_reward)
+            #print(expected_reward_factual)
             expected_reward_factual[:, pos_] = tmp_fixed_reward * (1/num_items)
+            #print(expected_reward_factual)
         else:
             expected_reward_factual[:, pos_] = tmp_fixed_reward
 

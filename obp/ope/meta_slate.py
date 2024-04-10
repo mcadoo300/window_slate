@@ -5,6 +5,7 @@
 from dataclasses import dataclass
 from logging import getLogger
 from pathlib import Path
+import pdb
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -141,6 +142,7 @@ class SlateOffPolicyEvaluation:
         evaluation_policy_action_dist: Optional[np.ndarray] = None,
         q_hat: Optional[np.ndarray] = None,
         evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None,
+        evaluation_policy_pscore_idp_window_normal: Optional[np.ndarray] = None,
     ) -> Dict[str, np.ndarray]:
         """Create input dictionary to estimate policy value by subclasses of `BaseSlateOffPolicyEstimator`"""
         if (
@@ -171,6 +173,7 @@ class SlateOffPolicyEvaluation:
                 "pscore_item_position",
                 "pscore_cascade",
                 "pscore_idp_window",
+                "pscore_idp_window_normal",
             ]
             if input_ in self.bandit_feedback
         }
@@ -188,6 +191,9 @@ class SlateOffPolicyEvaluation:
         estimator_inputs[
             "evaluation_policy_pscore_idp_window"
         ] = evaluation_policy_pscore_idp_window
+        estimator_inputs[
+            "evaluation_policy_pscore_idp_window_normal"
+        ] = evaluation_policy_pscore_idp_window_normal
         return estimator_inputs
 
     def estimate_policy_values(
@@ -198,6 +204,7 @@ class SlateOffPolicyEvaluation:
         evaluation_policy_action_dist: Optional[np.ndarray] = None,
         q_hat: Optional[np.ndarray] = None,
         evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None,
+        evaluation_policy_pscore_idp_window_normal: Optional[np.ndarray] = None,
     ) -> Dict[str, float]:
         """Estimate the policy value of evaluation policy.
 
@@ -231,6 +238,9 @@ class SlateOffPolicyEvaluation:
             Dictionary containing the policy values estimated by OPE estimators.
 
         """
+        #pdb.set_trace()
+        #print(evaluation_policy_pscore)
+        #print(evaluation_policy_pscore_idp_window_normal)
         policy_value_dict = dict()
         estimator_inputs = self._create_estimator_inputs(
             evaluation_policy_pscore=evaluation_policy_pscore,
@@ -238,9 +248,15 @@ class SlateOffPolicyEvaluation:
             evaluation_policy_pscore_cascade=evaluation_policy_pscore_cascade,
             evaluation_policy_action_dist=evaluation_policy_action_dist,
             q_hat=q_hat,
-            evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window
+            evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window,
+            evaluation_policy_pscore_idp_window_normal=evaluation_policy_pscore_idp_window_normal
         )
+        #pdb.set_trace()
+        #print(estimator_inputs)
         for estimator_name, estimator in self.ope_estimators_.items():
+            #pdb.set_trace()
+            #print(estimator_name)
+            #print(estimator)
             policy_value_dict[estimator_name] = estimator.estimate_policy_value(
                 **estimator_inputs
             )
@@ -258,6 +274,7 @@ class SlateOffPolicyEvaluation:
         n_bootstrap_samples: int = 100,
         random_state: Optional[int] = None,
         evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None,
+        evaluation_policy_pscore_idp_window_normal: Optional[np.ndarray] = None,
     ) -> Dict[str, Dict[str, float]]:
         """Estimate the confidence intervals of the policy values using bootstrap.
 
@@ -311,7 +328,8 @@ class SlateOffPolicyEvaluation:
             evaluation_policy_pscore_cascade=evaluation_policy_pscore_cascade,
             evaluation_policy_action_dist=evaluation_policy_action_dist,
             q_hat=q_hat,
-            evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window
+            evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window,
+            evaluation_policy_pscore_idp_window_normal=evaluation_policy_pscore_idp_window_normal
         )
         for estimator_name, estimator in self.ope_estimators_.items():
             policy_value_interval_dict[estimator_name] = estimator.estimate_interval(
@@ -334,6 +352,7 @@ class SlateOffPolicyEvaluation:
         n_bootstrap_samples: int = 100,
         random_state: Optional[int] = None,
         evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None,
+        evaluation_policy_pscore_idp_window_normal: Optional[np.ndarray] = None,
     ) -> Tuple[DataFrame, DataFrame]:
         """Summarize the estimated policy values and their confidence intervals estimated by bootstrap.
 
@@ -376,6 +395,9 @@ class SlateOffPolicyEvaluation:
             Policy values and their confidence intervals estimated by OPE estimators.
 
         """
+        #pdb.set_trace()
+        #print(evaluation_policy_pscore)
+        #print(evaluation_policy_pscore_idp_window_normal)
         policy_value_df = DataFrame(
             self.estimate_policy_values(
                 evaluation_policy_pscore=evaluation_policy_pscore,
@@ -384,9 +406,12 @@ class SlateOffPolicyEvaluation:
                 evaluation_policy_action_dist=evaluation_policy_action_dist,
                 q_hat=q_hat,
                 evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window,
+                evaluation_policy_pscore_idp_window_normal=evaluation_policy_pscore_idp_window_normal
             ),
             index=["estimated_policy_value"],
         )
+        #pdb.set_trace()
+        #print(policy_value_df)
         policy_value_interval_df = DataFrame(
             self.estimate_intervals(
                 evaluation_policy_pscore=evaluation_policy_pscore,
@@ -398,6 +423,7 @@ class SlateOffPolicyEvaluation:
                 n_bootstrap_samples=n_bootstrap_samples,
                 random_state=random_state,
                 evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window,
+                evaluation_policy_pscore_idp_window_normal=evaluation_policy_pscore_idp_window_normal
             )
         )
         policy_value_of_behavior_policy = (
@@ -429,7 +455,8 @@ class SlateOffPolicyEvaluation:
         random_state: Optional[int] = None,
         fig_dir: Optional[Path] = None,
         fig_name: str = "estimated_policy_value.png",
-        evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None
+        evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None,
+        evaluation_policy_pscore_idp_window_normal: Optional[np.ndarray] = None
     ) -> None:
         """Visualize the estimated policy values.
 
@@ -492,6 +519,7 @@ class SlateOffPolicyEvaluation:
             n_bootstrap_samples=n_bootstrap_samples,
             random_state=random_state,
             evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window,
+            evaluation_policy_pscore_idp_window_normal=evaluation_policy_pscore_idp_window_normal
         )
         estimated_interval_a["errbar_length"] = (
             estimated_interval_a.drop("mean", axis=1).diff(axis=1).iloc[:, -1].abs()
@@ -538,6 +566,7 @@ class SlateOffPolicyEvaluation:
         q_hat: Optional[np.ndarray] = None,
         metric: str = "se",
         evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None,
+        evaluation_policy_pscore_idp_window_normal: Optional[np.ndarray] = None,
     ) -> Dict[str, float]:
         """Evaluate the accuracy of OPE estimators.
 
@@ -612,6 +641,7 @@ class SlateOffPolicyEvaluation:
             evaluation_policy_action_dist=evaluation_policy_action_dist,
             q_hat=q_hat,
             evaluation_policy_pscore_idp_window= evaluation_policy_pscore_idp_window,
+            evaluation_policy_pscore_idp_window_normal=evaluation_policy_pscore_idp_window_normal
         )
         for estimator_name, estimator in self.ope_estimators_.items():
             estimated_policy_value = estimator.estimate_policy_value(**estimator_inputs)
@@ -634,6 +664,7 @@ class SlateOffPolicyEvaluation:
         q_hat: Optional[np.ndarray] = None,
         metric: str = "se",
         evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None,
+        evaluation_policy_pscore_idp_window_normal: Optional[np.ndarray] = None,
     ) -> DataFrame:
         """Summarize the performance comparison among OPE estimators.
 
@@ -684,6 +715,7 @@ class SlateOffPolicyEvaluation:
                 q_hat=q_hat,
                 metric=metric,
                 evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window,
+                evaluation_policy_pscore_idp_window_normal=evaluation_policy_pscore_idp_window_normal
             ),
             index=[metric],
         )

@@ -22,7 +22,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 #new imports
-from obp.ope.estimators_slate import SlateIndependentWindow
+from obp.ope.estimators_slate import SlateIndependentWindow, SlateIndependentWindowNormal
 from obp.utils import softmax
 
 
@@ -58,22 +58,22 @@ anti_iips_se=0
 anti_rips_se=0
 anti_wips_se=0
 
-num_seed=10000
+settings=[250,500,1000,2000,5000]
 
-for seed in range(num_seed):
+for setting in range(1):
     logging=False
     epsilon=0.5
     n_unique_action=10
-    len_list = 5
+    len_list = 4
     dim_context = 2
     reward_type = "binary"
     reward_structure="window_additive"
     click_model=None
-    random_state=seed
+    random_state=12345
     base_reward_function=logistic_reward_function
 
     # obtain  test sets of synthetic logged bandit data
-    n_rounds_test = 1000
+    n_rounds_test = 500
 
 
 
@@ -112,15 +112,17 @@ for seed in range(num_seed):
         reward=bandit_feedback_with_random_behavior["reward"],
         slate_id=bandit_feedback_with_random_behavior["slate_id"],
     )
-    print(random_policy_value)
+    #print(random_policy_value)
+    #pdb.set_trace()
+    #print(bandit_feedback_with_random_behavior)
 
     random_policy_logit_ = np.zeros((n_rounds_test, n_unique_action))
 
-    base_expected_reward = dataset_with_random_behavior.base_reward_function(
+    """base_expected_reward = dataset_with_random_behavior.base_reward_function(
         context=bandit_feedback_with_random_behavior["context"],
         action_context=dataset_with_random_behavior.action_context,
         random_state=dataset_with_random_behavior.random_state,
-    )
+    )"""
 
     optimal_policy_logit_ = variedPolicy(dataset_with_random_behavior.behavior_logit,epsilon)
     anti_optimal_policy_logit_ = variedPolicy(dataset_with_random_behavior.behavior_logit,-epsilon)
@@ -132,20 +134,26 @@ for seed in range(num_seed):
         df = pd.DataFrame(evaluation_logits,index=rows)
         df.to_excel('evaluation_logits.xlsx')
 
-
+    #pdb.set_trace()
     random_policy_pscores = dataset_with_random_behavior.obtain_pscore_given_evaluation_policy_logit(
         action=bandit_feedback_with_random_behavior["action"],
         evaluation_policy_logit_=random_policy_logit_
     )
+    #pdb.set_trace()
+    #print(random_policy_pscores)
     optimal_policy_pscores = dataset_with_random_behavior.obtain_pscore_given_evaluation_policy_logit(
         action=bandit_feedback_with_random_behavior["action"],
         evaluation_policy_logit_=optimal_policy_logit_
     )
+    #pdb.set_trace()
+    #print(optimal_policy_pscores)
 
     anti_optimal_policy_pscores = dataset_with_random_behavior.obtain_pscore_given_evaluation_policy_logit(
         action=bandit_feedback_with_random_behavior["action"],
         evaluation_policy_logit_=anti_optimal_policy_logit_
     )
+    #pdb.set_trace()
+    #print(anti_optimal_policy_pscores)
     if logging:
         pdb.set_trace()
         #print(random_policy_pscores)
@@ -161,14 +169,19 @@ for seed in range(num_seed):
     iips = SlateIndependentIPS(len_list=len_list)
     rips = SlateRewardInteractionIPS(len_list=len_list)
     wips = SlateIndependentWindow(len_list=len_list)
+    wipsn = SlateIndependentWindowNormal(len_list=len_list)
 
 
     ope = SlateOffPolicyEvaluation(
         bandit_feedback=bandit_feedback_with_random_behavior,
-        ope_estimators=[sips, iips, rips, wips]
+        ope_estimators=[wips,wipsn, sips, iips]
     )
 
     #pdb.set_trace()
+    #print(random_policy_pscores)
+    #print(random_policy_pscores[0])
+    #print(random_policy_pscores[4])
+    
     _, estimated_interval_random = ope.summarize_off_policy_estimates(
         evaluation_policy_pscore=random_policy_pscores[0],
         evaluation_policy_pscore_item_position=random_policy_pscores[1],
@@ -176,9 +189,13 @@ for seed in range(num_seed):
         alpha=0.05,
         n_bootstrap_samples=1000,
         random_state=dataset_with_random_behavior.random_state,
-        evaluation_policy_pscore_idp_window=random_policy_pscores[3]
+        evaluation_policy_pscore_idp_window=random_policy_pscores[3],
+        evaluation_policy_pscore_idp_window_normal=random_policy_pscores[4],
     )
+
     estimated_interval_random["policy_name"] = "random"
+    #pdb.set_trace()
+    #print(estimated_interval_random)
     #pdb.set_trace()
     #print(estimated_interval_random, '\n')
     # visualize estimated policy values of Uniform Random by the three OPE estimators
@@ -190,7 +207,8 @@ for seed in range(num_seed):
         alpha=0.05,
         n_bootstrap_samples=1000, # number of resampling performed in bootstrap sampling
         random_state=dataset_with_random_behavior.random_state,
-        evaluation_policy_pscore_idp_window=random_policy_pscores[3]
+        evaluation_policy_pscore_idp_window=random_policy_pscores[3],
+        evaluation_policy_pscore_idp_window_normal=random_policy_pscores[4],
     )
     #pdb.set_trace()
 
@@ -201,11 +219,12 @@ for seed in range(num_seed):
         alpha=0.05,
         n_bootstrap_samples=1000,
         random_state=dataset_with_random_behavior.random_state,
-        evaluation_policy_pscore_idp_window=optimal_policy_pscores[3]
+        evaluation_policy_pscore_idp_window=optimal_policy_pscores[3],
+        evaluation_policy_pscore_idp_window_normal=optimal_policy_pscores[4],
     )
 
     estimated_interval_optimal["policy_name"] = "optimal"
-
+    #pdb.set_trace()
     print(estimated_interval_optimal, '\n')
     # visualize estimated policy values of Optimal by the three OPE estimators
     # and their 95% confidence intervals (estimated by nonparametric bootstrap method)
@@ -216,7 +235,8 @@ for seed in range(num_seed):
         alpha=0.05,
         n_bootstrap_samples=1000, # number of resampling performed in bootstrap sampling
         random_state=dataset_with_random_behavior.random_state,
-        evaluation_policy_pscore_idp_window=optimal_policy_pscores[3]
+        evaluation_policy_pscore_idp_window=optimal_policy_pscores[3],
+        evaluation_policy_pscore_idp_window_normal=optimal_policy_pscores[4],
     )
 
     _, estimated_interval_anti_optimal = ope.summarize_off_policy_estimates(
@@ -226,7 +246,8 @@ for seed in range(num_seed):
         alpha=0.05,
         n_bootstrap_samples=1000,
         random_state=dataset_with_random_behavior.random_state,
-        evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3]
+        evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3],
+        evaluation_policy_pscore_idp_window_normal=anti_optimal_policy_pscores[4],
     )
     estimated_interval_anti_optimal["policy_name"] = "anti-optimal"
 
@@ -240,7 +261,8 @@ for seed in range(num_seed):
         alpha=0.05,
         n_bootstrap_samples=1000, # number of resampling performed in bootstrap sampling
         random_state=dataset_with_random_behavior.random_state,
-        evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3]
+        evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3],
+        evaluation_policy_pscore_idp_window_normal=anti_optimal_policy_pscores[4],
     )
 
     ground_truth_policy_value_random = dataset_with_random_behavior.calc_ground_truth_policy_value(
@@ -248,7 +270,7 @@ for seed in range(num_seed):
         evaluation_policy_logit_=random_policy_logit_
     )
     #pdb.set_trace()
-    #print(ground_truth_policy_value_random)
+    print(ground_truth_policy_value_random)
 
     ground_truth_policy_value_optimal = dataset_with_random_behavior.calc_ground_truth_policy_value(
         context=bandit_feedback_with_random_behavior["context"],
@@ -275,7 +297,7 @@ for seed in range(num_seed):
         ]
     )
     #pdb.set_trace()
-    #print(estimated_intervals)
+    estimated_intervals.to_excel(f"intervals_{reward_structure}_{epsilon}_{len_list}_{n_unique_action}_{n_rounds_test}_total_error.xlsx")
 
     # evaluate the estimation performances of OPE estimators 
     # by comparing the estimated policy values and its ground-truth.
@@ -286,7 +308,8 @@ for seed in range(num_seed):
         evaluation_policy_pscore=random_policy_pscores[0],
         evaluation_policy_pscore_item_position=random_policy_pscores[1],
         evaluation_policy_pscore_cascade=random_policy_pscores[2],
-        evaluation_policy_pscore_idp_window=random_policy_pscores[3]
+        evaluation_policy_pscore_idp_window=random_policy_pscores[3],
+        evaluation_policy_pscore_idp_window_normal=random_policy_pscores[4],
     )
     #pdb.set_trace()
 
@@ -299,7 +322,8 @@ for seed in range(num_seed):
         evaluation_policy_pscore=optimal_policy_pscores[0],
         evaluation_policy_pscore_item_position=optimal_policy_pscores[1],
         evaluation_policy_pscore_cascade=optimal_policy_pscores[2],
-        evaluation_policy_pscore_idp_window=optimal_policy_pscores[3]
+        evaluation_policy_pscore_idp_window=optimal_policy_pscores[3],
+        evaluation_policy_pscore_idp_window_normal=optimal_policy_pscores[4],
     )
 
     # evaluate the estimation performances of OPE estimators 
@@ -311,11 +335,14 @@ for seed in range(num_seed):
         evaluation_policy_pscore=anti_optimal_policy_pscores[0],
         evaluation_policy_pscore_item_position=anti_optimal_policy_pscores[1],
         evaluation_policy_pscore_cascade=anti_optimal_policy_pscores[2],
-        evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3]
+        evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3],
+        evaluation_policy_pscore_idp_window_normal=anti_optimal_policy_pscores[4],
     
     )
-    
-    rand_sips_se+=relative_ee_for_random_evaluation_policy.loc["sips"]["se"]
+    print(relative_ee_for_random_evaluation_policy)
+    print(relative_ee_for_optimal_evaluation_policy)
+    print(relative_ee_for_anti_optimal_evaluation_policy)
+    """rand_sips_se+=relative_ee_for_random_evaluation_policy.loc["sips"]["se"]
     rand_iips_se+=relative_ee_for_random_evaluation_policy.loc["iips"]["se"]
     rand_rips_se+=relative_ee_for_random_evaluation_policy.loc["rips"]["se"]
     rand_wips_se+=relative_ee_for_random_evaluation_policy.loc["wips"]["se"]
@@ -328,9 +355,9 @@ for seed in range(num_seed):
     anti_sips_se+=relative_ee_for_anti_optimal_evaluation_policy.loc["sips"]["se"]
     anti_iips_se+=relative_ee_for_anti_optimal_evaluation_policy.loc["iips"]["se"]
     anti_rips_se+=relative_ee_for_anti_optimal_evaluation_policy.loc["rips"]["se"]
-    anti_wips_se+=relative_ee_for_anti_optimal_evaluation_policy.loc["wips"]["se"]
+    anti_wips_se+=relative_ee_for_anti_optimal_evaluation_policy.loc["wips"]["se"]"""
 
-rand_sips_se/=num_seed
+"""rand_sips_se/=num_seed
 rand_iips_se/=num_seed
 rand_rips_se/=num_seed
 rand_wips_se/=num_seed
@@ -343,9 +370,9 @@ opt_wips_se/=num_seed
 anti_sips_se/=num_seed
 anti_iips_se/=num_seed
 anti_rips_se/=num_seed
-anti_wips_se/=num_seed
+anti_wips_se/=num_seed"""
 
-results = np.array(
+"""results = np.array(
     [
     [
         rand_sips_se,
@@ -370,6 +397,6 @@ results = np.array(
 
 row_labels = ['rand', 'opt', 'anti']
 column_labels = ['sips', 'iips', 'rips', 'wips']
-df = pd.DataFrame(data=results, index=row_labels, columns=column_labels)
+df = pd.DataFrame(data=results, index=row_labels, columns=column_labels)"""
 
-df.to_excel(f"{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_total_{num_seed}_error.xlsx")
+#df.to_excel(f"{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_total_{num_seed}_error.xlsx")
