@@ -370,6 +370,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                 np.arange(n_actions), action_index
             ]
             # delete actions
+
             if pos_ + 1 != self.len_list:
                 mask = np.ones((n_actions, self.n_unique_action - pos_))
                 mask[np.arange(n_actions), action_index] = 0
@@ -377,6 +378,52 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                     (-1, self.n_unique_action - pos_ - 1)
                 )
         return pscores
+    
+    def _calc_pscore_given_policy_logit_window(
+        self, all_slate_actions: np.ndarray, policy_logit_i_: np.ndarray, lower,upper
+    ) -> np.ndarray:
+        """Calculate the propensity score of all possible slate actions given a particular policy_logit.
+
+        Parameters
+        ------------
+        all_slate_actions: array-like, (n_action, len_list)
+            All possible slate actions.
+
+        policy_logit_i_: array-like, (n_unique_action, )
+            Logit values given context (:math:`x`), which defines the distribution over actions of the policy.
+
+        Returns
+        ------------
+        pscores: array-like, (n_action, )
+            Propensity scores of all slate actions.
+
+        """
+        n_actions = len(all_slate_actions)
+        unique_action_set_2d = np.tile(np.arange(self.n_unique_action), (n_actions, 1))
+        pscores_window = np.ones(n_actions)
+        for pos_ in np.arange(lower,upper+1):
+            action_index = np.where(
+                unique_action_set_2d == all_slate_actions[:, pos_][:, np.newaxis]
+            )[1]
+            pscores_window *= softmax(policy_logit_i_[unique_action_set_2d])[
+                np.arange(n_actions), action_index
+            ]
+            # delete actions
+            #pdb.set_trace()
+            #print(upper)
+            #print(pos_)
+            if pos_+1 < upper:
+                mask = np.ones((n_actions, self.n_unique_action - (pos_)))
+                
+                #print(mask)
+                #print(action_index)
+                #print(n_actions)
+                mask[np.arange(n_actions), action_index] = 0
+                unique_action_set_2d = unique_action_set_2d[mask.astype(bool)].reshape(
+                    (-1, self.n_unique_action - pos_ - 1)
+                )
+        #pdb.set_trace()
+        return pscores_window
 
     def _calc_pscore_given_policy_softmax(
         self, all_slate_actions: np.ndarray, policy_softmax_i_: np.ndarray
@@ -588,7 +635,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                         pscore_i = pscores[
                             enumerated_slate_actions[:, pos_] == action_
                         ].sum()
-                    pscore_i *= score_[action_index_] # multiply pscore
+                    #pscore_i *= score_[action_index_] # multiply pscore
 
                 pscore_idp_window_sum[i * self.len_list + pos_] = pscore_i
         return pscore_idp_window_sum
@@ -603,11 +650,11 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
         pscore_idp_window_norm = np.zeros(n_rounds * self.len_list)
         for i in tqdm(
             np.arange(n_rounds),
-            desc="[obtain_idp_window_pscore_given_policy_logit]",
+            desc="[obtain_idp_window_pscore_given_policy_logit_normalized]",
             total=n_rounds,
         ):
             unique_action_set = np.arange(self.n_unique_action)
-            window_range=5
+            window_range=1
             for pos_ in np.arange(self.len_list):
                 score_ = softmax(evaluation_policy_logit_[i : i + 1])[0]
                 # get lower and upper ends of window
@@ -645,17 +692,25 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
     ):
         n_rounds = action.reshape((-1, self.len_list)).shape[0]
         pscore_idp_window = np.zeros(n_rounds * self.len_list)
-        window_range=5
+        window_range=1
         for i in tqdm(
             np.arange(n_rounds),
-            desc="[obtain_idp_window_pscore_given_policy_logit]",
+            desc="[obtain_idp_window_pscore_given_policy_logit_]",
             total=n_rounds,
         ):
             unique_action_set = np.arange(self.n_unique_action)
             score_ = softmax(evaluation_policy_logit_[i : i + 1])[0]
-            #pdb.set_trace()
-            #print(score_)
-            #print(action)
+            enumerated_slate_actions = [
+                    _
+                    for _ in permutations(
+                        np.arange(self.n_unique_action), self.len_list
+                    )
+                ]
+            enumerated_slate_actions = np.array(enumerated_slate_actions)
+            pscores = self._calc_pscore_given_policy_logit(
+                            all_slate_actions=enumerated_slate_actions,
+                            policy_logit_i_=evaluation_policy_logit_[i]
+                        )
             for pos_ in np.arange(self.len_list):
                 # get lower and upper ends of window
                 lower = max(0,pos_ - window_range)
@@ -666,11 +721,16 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                 #pdb.set_trace()
                 #print(window_actions)
                 for action_ in window_actions:
-                    # get index of action taken
                     action_index_ = np.where(unique_action_set == action_)[0][0]
-                    pscore_i *= score_[action_index_] # multiply pscore
-                    #pdb.set_trace()
-                    #print(pscore_i)
+                    if action_ == window_actions[0]:
+                        pscore_i *= score_[action_index_] # multiply pscore
+                    else:
+                        
+                        #pdb.set_trace()
+                        pscore_i *= pscores[
+                            enumerated_slate_actions[:, pos_] == action_
+                        ].sum()
+
                 pscore_idp_window[i * self.len_list + pos_] = pscore_i
         return pscore_idp_window
 
@@ -1599,8 +1659,9 @@ def action_interaction_reward_function(
     expected_reward_factual = np.zeros_like(action_2d, dtype="float16")
 
     #track how many items are in window
-    num_items=1
+    
     for pos_ in np.arange(len_list):
+        num_items=1
         #pdb.set_trace()
         #print(pos_)
         #print(expected_reward)

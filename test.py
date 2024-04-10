@@ -6,6 +6,7 @@ import pdb
 from obp.ope import SlateStandardIPS, SlateIndependentIPS, SlateRewardInteractionIPS, SlateOffPolicyEvaluation
 from obp.dataset import (
     logistic_reward_function,
+    logistic_sparse_reward_function,
     SyntheticSlateBanditDataset,
     linear_behavior_policy_logit
 )
@@ -64,7 +65,7 @@ for setting in range(1):
     logging=False
     epsilon=0.5
     n_unique_action=10
-    len_list = 3
+    len_list = 7
     dim_context = 2
     reward_type = "binary"
     reward_structure="window_additive"
@@ -73,7 +74,7 @@ for setting in range(1):
     base_reward_function=logistic_reward_function
 
     # obtain  test sets of synthetic logged bandit data
-    n_rounds_test = 5
+    n_rounds_test = 1000
 
 
 
@@ -174,7 +175,7 @@ for setting in range(1):
 
     ope = SlateOffPolicyEvaluation(
         bandit_feedback=bandit_feedback_with_random_behavior,
-        ope_estimators=[wips,wipsn, sips, iips]
+        ope_estimators=[wipsn, sips,wips, iips, rips]
     )
 
     #pdb.set_trace()
