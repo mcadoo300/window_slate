@@ -1118,7 +1118,7 @@ class SelfNormalizedSlateRewardInteractionIPS(
 
 @dataclass
 class SlateIndependentWindow(BaseSlateInverseProbabilityWeighting):
-    estimator_name: str = "wips"
+    estimator_name: str = "wiips"
 
     def estimate_policy_value(
         self,
@@ -1230,8 +1230,8 @@ class SlateIndependentWindow(BaseSlateInverseProbabilityWeighting):
     
 
 @dataclass
-class SlateIndependentWindowNormal(BaseSlateInverseProbabilityWeighting):
-    estimator_name: str = "wipsn"
+class SlateIndependentWindowStandard(BaseSlateInverseProbabilityWeighting):
+    estimator_name: str = "wipss"
 
     def estimate_policy_value(
         self,
@@ -1334,6 +1334,118 @@ class SlateIndependentWindowNormal(BaseSlateInverseProbabilityWeighting):
             position=position,
             behavior_policy_pscore=pscore_idp_window_normal,
             evaluation_policy_pscore=evaluation_policy_pscore_idp_window_normal,
+        )
+        return self._estimate_slate_confidence_interval_by_bootstrap(
+            slate_id=slate_id,
+            estimated_rewards=estimated_rewards,
+            alpha=alpha,
+            n_bootstrap_samples=n_bootstrap_samples,
+            random_state=random_state,
+        )
+
+
+class SlateIndependentWindow2(BaseSlateInverseProbabilityWeighting):
+    estimator_name: str = "wiipsfull"
+
+    def estimate_policy_value(
+        self,
+        slate_id: np.ndarray,
+        reward: np.ndarray,
+        position: np.ndarray,
+        pscore_idp_window2: np.ndarray,
+        evaluation_policy_pscore_idp_window2: np.ndarray,
+        **kwargs,
+    ) -> float:
+        """Estimate the policy value of evaluation policy.
+
+        Parameters
+        ----------
+        slate_id: array-like, shape (<= n_rounds * len_list,)
+            Indices to differentiate slates (i.e., ranking or list of actions)
+
+        reward: array-like, shape (<= n_rounds * len_list,)
+            Slot-level rewards, i.e., :math:`r_{i}(l)`.
+
+        position: array-like, shape (<= n_rounds * len_list,)
+            Indices to differentiate slots/positions in a slate/ranking.
+
+        pscore_item_position: array-like, shape (<= n_rounds * len_list,)
+            Marginal probabilities of behavior policy choosing a particular action at each position (slot),
+            i.e., :math:`\\pi_b(a_{i}(l) |x_i)`.
+
+        evaluation_policy_pscore_item_position: array-like, shape (<= n_rounds * len_list,)
+            Marginal probabilities of evaluation policy choosing a particular action at each position (slot),
+             i.e., :math:`\\pi_e(a_{i}(l) |x_i)`.
+
+        Returns
+        ----------
+        V_hat: float
+            Estimated policy value of evaluation policy.
+
+        """
+        return (
+            self._estimate_round_rewards(
+                reward=reward,
+                position=position,
+                behavior_policy_pscore=pscore_idp_window2,
+                evaluation_policy_pscore=evaluation_policy_pscore_idp_window2,
+            ).sum()
+            / np.unique(slate_id).shape[0]
+        )
+
+    def estimate_interval(
+        self,
+        slate_id: np.ndarray,
+        reward: np.ndarray,
+        position: np.ndarray,
+        pscore_idp_window2: np.ndarray,
+        evaluation_policy_pscore_idp_window2: np.ndarray,
+        alpha: float = 0.05,
+        n_bootstrap_samples: int = 10000,
+        random_state: Optional[int] = None,
+        **kwargs,
+    ) -> Dict[str, float]:
+        """Estimate the confidence interval of the policy value using bootstrap.
+
+        Parameters
+        ----------
+        slate_id: array-like, shape (<= n_rounds * len_list,)
+            Indices to differentiate slates (i.e., ranking or list of actions)
+
+        reward: array-like, shape (<= n_rounds * len_list,)
+            Slot-level rewards, i.e., :math:`r_{i}(l)`.
+
+        position: array-like, shape (<= n_rounds * len_list,)
+            Indices to differentiate slots/positions in a slate/ranking.
+
+        pscore_item_position: array-like, shape (<= n_rounds * len_list,)
+            Marginal probabilities of behavior policy choosing a particular action at each position (slot),
+            i.e., :math:`\\pi_b(a_{i}(l) |x_i)`.
+
+        evaluation_policy_pscore_item_position: array-like, shape (<= n_rounds * len_list,)
+            Marginal probabilities of evaluation policy choosing a particular action at each position (slot),
+             i.e., :math:`\\pi_e(a_{i}(l) |x_i)`.
+
+        alpha: float, default=0.05
+            Significance level.
+
+        n_bootstrap_samples: int, default=10000
+            Number of resampling performed in bootstrap sampling.
+
+        random_state: int, default=None
+            Controls the random seed in bootstrap sampling.
+
+        Returns
+        ----------
+        estimated_confidence_interval: Dict[str, float]
+            Dictionary storing the estimated mean and upper-lower confidence bounds.
+
+        """
+        estimated_rewards = self._estimate_round_rewards(
+            reward=reward,
+            position=position,
+            behavior_policy_pscore=pscore_idp_window2,
+            evaluation_policy_pscore=evaluation_policy_pscore_idp_window2,
         )
         return self._estimate_slate_confidence_interval_by_bootstrap(
             slate_id=slate_id,
