@@ -76,7 +76,7 @@ for s in settings:
         logging=False
         epsilon=0.5
         n_unique_action=10
-        len_list = 5
+        len_list = 4 
 
         dim_context = 2
         reward_type = "binary"
