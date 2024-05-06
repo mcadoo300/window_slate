@@ -59,7 +59,7 @@ anti_iips_se=0
 anti_rips_se=0
 anti_wips_se=0
 
-settings=[1000,2000,3000,4000,5000]
+settings=[5000]
 
 num_seed=10
 
