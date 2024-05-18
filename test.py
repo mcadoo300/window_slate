@@ -61,7 +61,7 @@ anti_wips_se=0
 
 settings=[5000]
 
-num_seed=10
+num_seed=8
 
 
 
@@ -72,11 +72,11 @@ for s in settings:
     wiips_data = np.empty((0, 3), dtype=object)
     wipss_data = np.empty((0, 3), dtype=object)
     wiipsfull_data = np.empty((0, 3), dtype=object)
-    for seed in range(10):
+    for seed in range(8):
         logging=False
         epsilon=0.5
         n_unique_action=10
-        len_list = 6 
+        len_list = 6
 
         dim_context = 2
         reward_type = "binary"
@@ -403,26 +403,26 @@ for s in settings:
                         relative_ee_for_dissimilar_evaluation_policy["se"]["wipss"]]])
         wipss_data = np.append(wipss_data, row, axis=0)
 
-    df = pd.DataFrame(sips_data, columns=["random", "similar", "dissimilar"])
-    # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_6/sips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+        df = pd.DataFrame(sips_data, columns=["random", "similar", "dissimilar"])
+    	# Save the DataFrame to a file (e.g., CSV)
+        df.to_excel(f"slate_6/sips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error{num_seed}.xlsx", index=False)
 
-    df = pd.DataFrame(iips_data, columns=["random", "similar", "dissimilar"])
-    # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_6/iips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+        df = pd.DataFrame(iips_data, columns=["random", "similar", "dissimilar"])
+    	# Save the DataFrame to a file (e.g., CSV)
+        df.to_excel(f"slate_6/iips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error{num_seed}.xlsx", index=False)
 
-    df = pd.DataFrame(rips_data, columns=["random", "similar", "dissimilar"])
-    # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_6/rips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+        df = pd.DataFrame(rips_data, columns=["random", "similar", "dissimilar"])
+    	# Save the DataFrame to a file (e.g., CSV)
+        df.to_excel(f"slate_6/rips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error{num_seed}.xlsx", index=False)
 
-    df = pd.DataFrame(wipss_data, columns=["random", "similar", "dissimilar"])
-    # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_6/wipss_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+        df = pd.DataFrame(wipss_data, columns=["random", "similar", "dissimilar"])
+    	# Save the DataFrame to a file (e.g., CSV)
+        df.to_excel(f"slate_6/wipss_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error{num_seed}.xlsx", index=False)
 
-    df = pd.DataFrame(wiips_data, columns=["random", "similar", "dissimilar"])
-    # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_6/wiips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+        df = pd.DataFrame(wiips_data, columns=["random", "similar", "dissimilar"])
+    	# Save the DataFrame to a file (e.g., CSV)
+        df.to_excel(f"slate_6/wiips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error{num_seed}.xlsx", index=False)
 
-    df = pd.DataFrame(wiipsfull_data, columns=["random", "similar", "dissimilar"])
-    # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_6/wiipsfull_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+        df = pd.DataFrame(wiipsfull_data, columns=["random", "similar", "dissimilar"])
+    	# Save the DataFrame to a file (e.g., CSV)
+        df.to_excel(f"slate_6/wiipsfull_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error{num_seed}.xlsx", index=False)
