@@ -72,7 +72,7 @@ for s in settings:
     wiips_data = np.empty((0, 3), dtype=object)
     wipss_data = np.empty((0, 3), dtype=object)
     wiipsfull_data = np.empty((0, 3), dtype=object)
-    for seed in range(8):
+    for seed in range(2,8):
         logging=False
         epsilon=0.5
         n_unique_action=10
