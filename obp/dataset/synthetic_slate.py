@@ -1024,6 +1024,7 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                 ]
             ).T
         else:
+            #pdb.set_trace()
             expected_reward_factual = self.reward_function(
                 context=context,
                 action_context=self.action_context,
@@ -1036,6 +1037,8 @@ class SyntheticSlateBanditDataset(BaseBanditDataset):
                 random_state=self.random_state,
             )
         # check the shape of expected_reward_factual
+        #pdb.set_trace()
+        #print(expected_reward_factual)
         if not (
             isinstance(expected_reward_factual, np.ndarray)
             and expected_reward_factual.shape == (n_rounds, self.len_list)
@@ -1664,7 +1667,6 @@ def action_interaction_reward_function(
     expected_reward_factual = np.zeros_like(action_2d, dtype="float16")
 
     #track how many items are in window
-    #weight_factor = [1/2,1/3,1/3,1/3,1/2]
     for pos_ in np.arange(len_list):
         num_items=1
         #pdb.set_trace()
@@ -1696,7 +1698,6 @@ def action_interaction_reward_function(
                 if is_window:
                     #print(pos2_)
                     if pos_ -1 == pos2_  or pos2_ == pos_ +1:
-                        
                         #tmp_fixed_reward += action_interaction_weight_matrix[
                         #    action_2d[:, pos_], action_2d[:, pos2_]
                         #]
@@ -1746,6 +1747,7 @@ def action_interaction_reward_function(
         action_2d.shape[0],
         len_list,
     ), f"response shape must be (n_rounds (* enumerated_slate_actions), len_list), but {expected_reward_factual.shape}"
+    #pdb.set_trace()
     return expected_reward_factual
 
 

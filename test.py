@@ -8,7 +8,9 @@ from obp.dataset import (
     logistic_reward_function,
     logistic_sparse_reward_function,
     SyntheticSlateBanditDataset,
-    linear_behavior_policy_logit
+    linear_behavior_policy_logit,
+    linear_reward_function,
+    polynomial_reward_function
 )
 
 from itertools import product
@@ -59,35 +61,31 @@ anti_iips_se=0
 anti_rips_se=0
 anti_wips_se=0
 
-settings=[1000,2000,3000,4000,5000]
-
 num_seed=10
-
-
-
-for s in settings:
+seed_count = 10
+settings = [250,500,750,1000,2000,3000,4000,5000]
+for round_test in settings:
     sips_data = np.empty((0, 3), dtype=object)
     iips_data = np.empty((0, 3), dtype=object)
     rips_data = np.empty((0, 3), dtype=object)
     wiips_data = np.empty((0, 3), dtype=object)
     wipss_data = np.empty((0, 3), dtype=object)
     wiipsfull_data = np.empty((0, 3), dtype=object)
-    for seed in range(10):
+    for seed in range(seed_count):
         logging=False
         epsilon=0.5
         n_unique_action=10
-        len_list = 5
+        len_list = 6
 
         dim_context = 2
-        reward_type = "binary"
+        reward_type = "continuous"
         reward_structure="window_additive"
         click_model=None
         random_state=seed
-        base_reward_function=logistic_reward_function
+        base_reward_function=linear_reward_function
 
         # obtain  test sets of synthetic logged bandit data
-        n_rounds_test = s
-
+        n_rounds_test = round_test
 
 
         # define Uniform Random Policy as a baseline behavior policy
@@ -102,7 +100,7 @@ for s in settings:
             behavior_policy_function=linear_behavior_policy_logit,
             base_reward_function=base_reward_function,
         )
-
+        #print(dataset_with_random_behavior)
         # compute the factual action choice probabililties for the test set of the synthetic logged bandit data
         bandit_feedback_with_random_behavior = dataset_with_random_behavior.obtain_batch_bandit_feedback(
             n_rounds=n_rounds_test,
@@ -245,7 +243,7 @@ for s in settings:
 
         estimated_interval_similar["policy_name"] = "optimal"
         #pdb.set_trace()
-        print(estimated_interval_similar, '\n')
+        #print(estimated_interval_similar, '\n')
         # visualize estimated policy values of Optimal by the three OPE estimators
         # and their 95% confidence intervals (estimated by nonparametric bootstrap method)
         ope.visualize_off_policy_estimates(
@@ -273,7 +271,7 @@ for s in settings:
         )
         estimated_interval_dissimilar["policy_name"] = "anti-optimal"
 
-        print(estimated_interval_dissimilar, '\n')
+        #print(estimated_interval_dissimilar, '\n')
         # visualize estimated policy values of Anti-optimal by the three OPE estimators
         # and their 95% confidence intervals (estimated by nonparametric bootstrap method)
         ope.visualize_off_policy_estimates(
@@ -293,7 +291,7 @@ for s in settings:
             evaluation_policy_logit_=random_policy_logit_
         )
         #pdb.set_trace()
-        print(ground_truth_policy_value_random)
+        #print(ground_truth_policy_value_random)
 
         ground_truth_policy_value_optimal = dataset_with_random_behavior.calc_ground_truth_policy_value(
             context=bandit_feedback_with_random_behavior["context"],
@@ -320,7 +318,7 @@ for s in settings:
             ]
         )
         #pdb.set_trace()
-        estimated_intervals.to_excel(f"intervals_{reward_structure}_{epsilon}_{len_list}_{n_unique_action}_{n_rounds_test}_total_error.xlsx")
+        #estimated_intervals.to_excel(f"intervals_{reward_structure}_{epsilon}_{len_list}_{n_unique_action}_{n_rounds_test}_total_error.xlsx")
 
         # evaluate the estimation performances of OPE estimators 
         # by comparing the estimated policy values and its ground-truth.
@@ -405,24 +403,25 @@ for s in settings:
 
     df = pd.DataFrame(sips_data, columns=["random", "similar", "dissimilar"])
     # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_5/sips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+    #pdb.set_trace()
+    df.to_excel(f"slate_{len_list}/sips_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)
 
     df = pd.DataFrame(iips_data, columns=["random", "similar", "dissimilar"])
     # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_5/iips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+    df.to_excel(f"slate_{len_list}/iips_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)
 
     df = pd.DataFrame(rips_data, columns=["random", "similar", "dissimilar"])
     # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_5/rips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+    df.to_excel(f"slate_{len_list}/rips_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)
 
     df = pd.DataFrame(wipss_data, columns=["random", "similar", "dissimilar"])
     # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_5/wipss_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+    df.to_excel(f"slate_{len_list}/wipss_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)
 
     df = pd.DataFrame(wiips_data, columns=["random", "similar", "dissimilar"])
     # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_5/wiips_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+    df.to_excel(f"slate_{len_list}/wiips_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)
 
     df = pd.DataFrame(wiipsfull_data, columns=["random", "similar", "dissimilar"])
     # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_5/wiipsfull_{reward_structure}_{epsilon}_{len_list}_{n_rounds_test}_error.xlsx", index=False)
+    df.to_excel(f"slate_{len_list}/wiipsfull_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)

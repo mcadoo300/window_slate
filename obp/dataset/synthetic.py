@@ -3,6 +3,7 @@
 
 """Class for Generating Synthetic Logged Bandit Data."""
 from dataclasses import dataclass
+import pdb
 from typing import Callable, Tuple
 from typing import Optional
 
@@ -802,11 +803,11 @@ def _base_reward_function(
         context_values = np.tile(
             np.sum(effective_context_ * context_coef_, axis=1), (n_actions, 1)
         ).T
-
+    
     action_values = action_coef_ @ effective_action_context_.T
     if action_coef_.shape[0] != datasize:
         action_values = np.tile(action_values, (datasize, 1))
-
+    
     if action_coef_.shape[0] != datasize:
         context_action_values = (
             effective_context_ @ context_action_coef_ @ effective_action_context_.T
@@ -828,7 +829,7 @@ def _base_reward_function(
         )
 
     expected_rewards = degree * expected_rewards
-
+    
     return expected_rewards
 
 

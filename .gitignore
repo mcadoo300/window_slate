@@ -6,7 +6,10 @@ __pycache__/
 
 #log data
 slate_3/*
+slate_4/*
 slate_5/*
+slate_6/*
+
 # C extensions
 *.so
 
