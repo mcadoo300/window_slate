@@ -61,7 +61,7 @@ anti_wips_se=0
 
 settings=[5000]
 
-num_seed=8
+num_seed=2
 
 
 
@@ -72,7 +72,7 @@ for s in settings:
     wiips_data = np.empty((0, 3), dtype=object)
     wipss_data = np.empty((0, 3), dtype=object)
     wiipsfull_data = np.empty((0, 3), dtype=object)
-    for seed in range(2,8):
+    for seed in range(9,10):
         logging=False
         epsilon=0.5
         n_unique_action=10
