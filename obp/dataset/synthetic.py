@@ -798,17 +798,20 @@ def _base_reward_function(
     )
 
     if context_coef_.shape[0] != datasize:
+
         context_values = np.tile(effective_context_ @ context_coef_, (n_actions, 1)).T
+
     else:
         context_values = np.tile(
             np.sum(effective_context_ * context_coef_, axis=1), (n_actions, 1)
         ).T
-    
+
     action_values = action_coef_ @ effective_action_context_.T
     if action_coef_.shape[0] != datasize:
         action_values = np.tile(action_values, (datasize, 1))
     
     if action_coef_.shape[0] != datasize:
+
         context_action_values = (
             effective_context_ @ context_action_coef_ @ effective_action_context_.T
         )
@@ -817,7 +820,7 @@ def _base_reward_function(
         context_action_coef_interactions = np.squeeze(
             np.matmul(effective_context_, context_action_coef_), axis=1
         )
-
+        
         context_action_values = (
             context_action_coef_interactions @ effective_action_context_.T
         )

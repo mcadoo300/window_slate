@@ -1352,8 +1352,8 @@ class SlateIndependentWindow2(BaseSlateInverseProbabilityWeighting):
         slate_id: np.ndarray,
         reward: np.ndarray,
         position: np.ndarray,
-        pscore_idp_window2: np.ndarray,
-        evaluation_policy_pscore_idp_window2: np.ndarray,
+        pscore_idp_window: np.ndarray,
+        evaluation_policy_pscore_idp_window: np.ndarray,
         **kwargs,
     ) -> float:
         """Estimate the policy value of evaluation policy.
@@ -1383,12 +1383,15 @@ class SlateIndependentWindow2(BaseSlateInverseProbabilityWeighting):
             Estimated policy value of evaluation policy.
 
         """
+        #quick edit
+        #pdb.set_trace()
+        #print("here")
         return (
             self._estimate_round_rewards(
                 reward=reward,
                 position=position,
-                behavior_policy_pscore=pscore_idp_window2,
-                evaluation_policy_pscore=evaluation_policy_pscore_idp_window2,
+                behavior_policy_pscore=pscore_idp_window,
+                evaluation_policy_pscore=evaluation_policy_pscore_idp_window,
             ).sum()
             / np.unique(slate_id).shape[0]
         )
@@ -1398,8 +1401,8 @@ class SlateIndependentWindow2(BaseSlateInverseProbabilityWeighting):
         slate_id: np.ndarray,
         reward: np.ndarray,
         position: np.ndarray,
-        pscore_idp_window2: np.ndarray,
-        evaluation_policy_pscore_idp_window2: np.ndarray,
+        pscore_idp_window: np.ndarray,
+        evaluation_policy_pscore_idp_window: np.ndarray,
         alpha: float = 0.05,
         n_bootstrap_samples: int = 10000,
         random_state: Optional[int] = None,
@@ -1444,8 +1447,8 @@ class SlateIndependentWindow2(BaseSlateInverseProbabilityWeighting):
         estimated_rewards = self._estimate_round_rewards(
             reward=reward,
             position=position,
-            behavior_policy_pscore=pscore_idp_window2,
-            evaluation_policy_pscore=evaluation_policy_pscore_idp_window2,
+            behavior_policy_pscore=pscore_idp_window,
+            evaluation_policy_pscore=evaluation_policy_pscore_idp_window,
         )
         return self._estimate_slate_confidence_interval_by_bootstrap(
             slate_id=slate_id,

@@ -142,8 +142,6 @@ class SlateOffPolicyEvaluation:
         evaluation_policy_action_dist: Optional[np.ndarray] = None,
         q_hat: Optional[np.ndarray] = None,
         evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None,
-        evaluation_policy_pscore_idp_window_normal: Optional[np.ndarray] = None,
-        evaluation_policy_pscore_idp_window2: Optional[np.ndarray] = None,
     ) -> Dict[str, np.ndarray]:
         """Create input dictionary to estimate policy value by subclasses of `BaseSlateOffPolicyEstimator`"""
         if (
@@ -174,8 +172,6 @@ class SlateOffPolicyEvaluation:
                 "pscore_item_position",
                 "pscore_cascade",
                 "pscore_idp_window",
-                "pscore_idp_window_normal",
-                "pscore_idp_window2",
             ]
             if input_ in self.bandit_feedback
         }
@@ -193,12 +189,6 @@ class SlateOffPolicyEvaluation:
         estimator_inputs[
             "evaluation_policy_pscore_idp_window"
         ] = evaluation_policy_pscore_idp_window
-        estimator_inputs[
-            "evaluation_policy_pscore_idp_window_normal"
-        ] = evaluation_policy_pscore_idp_window_normal
-        estimator_inputs[
-            "evaluation_policy_pscore_idp_window2"
-        ] = evaluation_policy_pscore_idp_window2
         return estimator_inputs
 
     def estimate_policy_values(
@@ -209,8 +199,6 @@ class SlateOffPolicyEvaluation:
         evaluation_policy_action_dist: Optional[np.ndarray] = None,
         q_hat: Optional[np.ndarray] = None,
         evaluation_policy_pscore_idp_window: Optional[np.ndarray] = None,
-        evaluation_policy_pscore_idp_window_normal: Optional[np.ndarray] = None,
-        evaluation_policy_pscore_idp_window2: Optional[np.ndarray] = None,
     ) -> Dict[str, float]:
         """Estimate the policy value of evaluation policy.
 
@@ -255,8 +243,6 @@ class SlateOffPolicyEvaluation:
             evaluation_policy_action_dist=evaluation_policy_action_dist,
             q_hat=q_hat,
             evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window,
-            evaluation_policy_pscore_idp_window_normal=evaluation_policy_pscore_idp_window_normal,
-            evaluation_policy_pscore_idp_window2=evaluation_policy_pscore_idp_window2
         )
         #pdb.set_trace()
         #print(estimator_inputs)
@@ -264,6 +250,7 @@ class SlateOffPolicyEvaluation:
             #pdb.set_trace()
             #print(estimator_name)
             #print(estimator)
+            #print(estimator_inputs)
             policy_value_dict[estimator_name] = estimator.estimate_policy_value(
                 **estimator_inputs
             )
@@ -337,8 +324,6 @@ class SlateOffPolicyEvaluation:
             evaluation_policy_action_dist=evaluation_policy_action_dist,
             q_hat=q_hat,
             evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window,
-            evaluation_policy_pscore_idp_window_normal=evaluation_policy_pscore_idp_window_normal,
-            evaluation_policy_pscore_idp_window2=evaluation_policy_pscore_idp_window2
         )
         
         for estimator_name, estimator in self.ope_estimators_.items():
@@ -419,8 +404,6 @@ class SlateOffPolicyEvaluation:
                 evaluation_policy_action_dist=evaluation_policy_action_dist,
                 q_hat=q_hat,
                 evaluation_policy_pscore_idp_window=evaluation_policy_pscore_idp_window,
-                evaluation_policy_pscore_idp_window_normal=evaluation_policy_pscore_idp_window_normal,
-                evaluation_policy_pscore_idp_window2=evaluation_policy_pscore_idp_window2
             ),
             index=["estimated_policy_value"],
         )
@@ -664,8 +647,6 @@ class SlateOffPolicyEvaluation:
             evaluation_policy_action_dist=evaluation_policy_action_dist,
             q_hat=q_hat,
             evaluation_policy_pscore_idp_window= evaluation_policy_pscore_idp_window,
-            evaluation_policy_pscore_idp_window_normal=evaluation_policy_pscore_idp_window_normal,
-            evaluation_policy_pscore_idp_window2=evaluation_policy_pscore_idp_window2
         )
         for estimator_name, estimator in self.ope_estimators_.items():
             estimated_policy_value = estimator.estimate_policy_value(**estimator_inputs)
