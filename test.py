@@ -63,7 +63,7 @@ anti_wips_se=0
 
 num_seed=10
 seed_count = 10
-settings = [250,500,750,1000,2000,3000,4000,5000]
+settings = [4000]
 for round_test in settings:
     sips_data = np.empty((0, 3), dtype=object)
     iips_data = np.empty((0, 3), dtype=object)
@@ -75,9 +75,9 @@ for round_test in settings:
         logging=False
         epsilon=0.5
         n_unique_action=10
-        len_list = 6
+        len_list = 4
 
-        dim_context = 2
+        dim_context = 5
         reward_type = "continuous"
         reward_structure="window_additive"
         click_model=None
@@ -100,13 +100,14 @@ for round_test in settings:
             behavior_policy_function=linear_behavior_policy_logit,
             base_reward_function=base_reward_function,
         )
-        #print(dataset_with_random_behavior)
+
         # compute the factual action choice probabililties for the test set of the synthetic logged bandit data
         bandit_feedback_with_random_behavior = dataset_with_random_behavior.obtain_batch_bandit_feedback(
             n_rounds=n_rounds_test,
             return_pscore_item_position=True,
         )
-        #pdb.set_trace()
+
+        
         #print(bandit_feedback_with_random_behavior)
         if logging:
             pdb.set_trace()
@@ -125,77 +126,40 @@ for round_test in settings:
             reward=bandit_feedback_with_random_behavior["reward"],
             slate_id=bandit_feedback_with_random_behavior["slate_id"],
         )
-        #print(random_policy_value)
-        #pdb.set_trace()
-        #print(bandit_feedback_with_random_behavior)
+
 
         random_policy_logit_ = np.zeros((n_rounds_test, n_unique_action))
-
-        """base_expected_reward = dataset_with_random_behavior.base_reward_function(
-            context=bandit_feedback_with_random_behavior["context"],
-            action_context=dataset_with_random_behavior.action_context,
-            random_state=dataset_with_random_behavior.random_state,
-        )"""
-
         similar_policy_logit = variedPolicy(dataset_with_random_behavior.behavior_logit,epsilon,similar=True)
         dissimilar_policy_logit_ = variedPolicy(dataset_with_random_behavior.behavior_logit,epsilon,similar=False)
-        if logging:
-            pdb.set_trace()
-            evaluation_logits=[random_policy_logit_[0],similar_policy_logit[0],dissimilar_policy_logit_[0]]
-            #print(evaluation_logits)
-            rows=['random','optimal','anti-optimal']
-            df = pd.DataFrame(evaluation_logits,index=rows)
-            df.to_excel('evaluation_logits.xlsx')
 
-        #pdb.set_trace()
+
         random_policy_pscores = dataset_with_random_behavior.obtain_pscore_given_evaluation_policy_logit(
             action=bandit_feedback_with_random_behavior["action"],
             evaluation_policy_logit_=random_policy_logit_
         )
-        #pdb.set_trace()
-        #print(random_policy_pscores)
+
         optimal_policy_pscores = dataset_with_random_behavior.obtain_pscore_given_evaluation_policy_logit(
             action=bandit_feedback_with_random_behavior["action"],
             evaluation_policy_logit_=similar_policy_logit
         )
-        #pdb.set_trace()
-        #print(optimal_policy_pscores)
+
 
         anti_optimal_policy_pscores = dataset_with_random_behavior.obtain_pscore_given_evaluation_policy_logit(
             action=bandit_feedback_with_random_behavior["action"],
             evaluation_policy_logit_=dissimilar_policy_logit_
         )
-        #pdb.set_trace()
-        #print(anti_optimal_policy_pscores)
-        if logging:
-            pdb.set_trace()
-            #print(random_policy_pscores)
-            evaluation_pscores=[random_policy_pscores,optimal_policy_pscores,anti_optimal_policy_pscores]
-            #print(evaluation_pscores)
-            rows=['random','optimal','anti-optimal']
-            df = pd.DataFrame(evaluation_pscores,index=rows,columns=["standard","independent","cascade", "window"])
-            df.to_excel('evaluation_pscores.xlsx')
-        # estimate the policy value of the evaluation policies based on their action choice probabilities
-        # it is possible to set multiple OPE estimators to the `ope_estimators` argument
+
 
         sips = SlateStandardIPS(len_list=len_list)
         iips = SlateIndependentIPS(len_list=len_list)
         rips = SlateRewardInteractionIPS(len_list=len_list)
-        wiips = SlateIndependentWindow(len_list=len_list)
-        wipss = SlateIndependentWindowStandard(len_list=len_list)
         wiips2 = SlateIndependentWindow2(len_list=len_list)
 
 
         ope = SlateOffPolicyEvaluation(
             bandit_feedback=bandit_feedback_with_random_behavior,
-            ope_estimators=[wipss, sips,wiips,wiips2, iips, rips]
+            ope_estimators=[sips,wiips2, iips, rips]
         )
-
-        #pdb.set_trace()
-        #print(random_policy_pscores)
-        #print(random_policy_pscores[5])
-        #print(random_policy_pscores[4])
-        #print(random_policy_pscores[1])
         
         _, estimated_interval_random = ope.summarize_off_policy_estimates(
             evaluation_policy_pscore=random_policy_pscores[0],
@@ -204,18 +168,10 @@ for round_test in settings:
             alpha=0.05,
             n_bootstrap_samples=1000,
             random_state=dataset_with_random_behavior.random_state,
-            evaluation_policy_pscore_idp_window=random_policy_pscores[3],
-            evaluation_policy_pscore_idp_window_normal=random_policy_pscores[4],
-            evaluation_policy_pscore_idp_window2=random_policy_pscores[5],
+            evaluation_policy_pscore_idp_window=random_policy_pscores[3]
         )
 
         estimated_interval_random["policy_name"] = "random"
-        #pdb.set_trace()
-        #print(estimated_interval_random)
-        #pdb.set_trace()
-        #print(estimated_interval_random, '\n')
-        # visualize estimated policy values of Uniform Random by the three OPE estimators
-        # and their 95% confidence intervals (estimated by nonparametric bootstrap method)
         ope.visualize_off_policy_estimates(
             evaluation_policy_pscore=random_policy_pscores[0],
             evaluation_policy_pscore_item_position=random_policy_pscores[1],
@@ -224,8 +180,6 @@ for round_test in settings:
             n_bootstrap_samples=1000, # number of resampling performed in bootstrap sampling
             random_state=dataset_with_random_behavior.random_state,
             evaluation_policy_pscore_idp_window=random_policy_pscores[3],
-            evaluation_policy_pscore_idp_window_normal=random_policy_pscores[4],
-            evaluation_policy_pscore_idp_window2=random_policy_pscores[5],
         )
         #pdb.set_trace()
 
@@ -237,15 +191,9 @@ for round_test in settings:
             n_bootstrap_samples=1000,
             random_state=dataset_with_random_behavior.random_state,
             evaluation_policy_pscore_idp_window=optimal_policy_pscores[3],
-            evaluation_policy_pscore_idp_window_normal=optimal_policy_pscores[4],
-            evaluation_policy_pscore_idp_window2=optimal_policy_pscores[5],
         )
 
         estimated_interval_similar["policy_name"] = "optimal"
-        #pdb.set_trace()
-        #print(estimated_interval_similar, '\n')
-        # visualize estimated policy values of Optimal by the three OPE estimators
-        # and their 95% confidence intervals (estimated by nonparametric bootstrap method)
         ope.visualize_off_policy_estimates(
             evaluation_policy_pscore=optimal_policy_pscores[0],
             evaluation_policy_pscore_item_position=optimal_policy_pscores[1],
@@ -254,8 +202,6 @@ for round_test in settings:
             n_bootstrap_samples=1000, # number of resampling performed in bootstrap sampling
             random_state=dataset_with_random_behavior.random_state,
             evaluation_policy_pscore_idp_window=optimal_policy_pscores[3],
-            evaluation_policy_pscore_idp_window_normal=optimal_policy_pscores[4],
-            evaluation_policy_pscore_idp_window2=optimal_policy_pscores[5],
         )
 
         _, estimated_interval_dissimilar = ope.summarize_off_policy_estimates(
@@ -266,14 +212,8 @@ for round_test in settings:
             n_bootstrap_samples=1000,
             random_state=dataset_with_random_behavior.random_state,
             evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3],
-            evaluation_policy_pscore_idp_window_normal=anti_optimal_policy_pscores[4],
-            evaluation_policy_pscore_idp_window2=anti_optimal_policy_pscores[5],
         )
         estimated_interval_dissimilar["policy_name"] = "anti-optimal"
-
-        #print(estimated_interval_dissimilar, '\n')
-        # visualize estimated policy values of Anti-optimal by the three OPE estimators
-        # and their 95% confidence intervals (estimated by nonparametric bootstrap method)
         ope.visualize_off_policy_estimates(
             evaluation_policy_pscore=anti_optimal_policy_pscores[0],
             evaluation_policy_pscore_item_position=anti_optimal_policy_pscores[1],
@@ -282,16 +222,12 @@ for round_test in settings:
             n_bootstrap_samples=1000, # number of resampling performed in bootstrap sampling
             random_state=dataset_with_random_behavior.random_state,
             evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3],
-            evaluation_policy_pscore_idp_window_normal=anti_optimal_policy_pscores[4],
-            evaluation_policy_pscore_idp_window2=anti_optimal_policy_pscores[5],
         )
 
         ground_truth_policy_value_random = dataset_with_random_behavior.calc_ground_truth_policy_value(
             context=bandit_feedback_with_random_behavior["context"],
             evaluation_policy_logit_=random_policy_logit_
         )
-        #pdb.set_trace()
-        #print(ground_truth_policy_value_random)
 
         ground_truth_policy_value_optimal = dataset_with_random_behavior.calc_ground_truth_policy_value(
             context=bandit_feedback_with_random_behavior["context"],
@@ -330,8 +266,6 @@ for round_test in settings:
             evaluation_policy_pscore_item_position=random_policy_pscores[1],
             evaluation_policy_pscore_cascade=random_policy_pscores[2],
             evaluation_policy_pscore_idp_window=random_policy_pscores[3],
-            evaluation_policy_pscore_idp_window_normal=random_policy_pscores[4],
-            evaluation_policy_pscore_idp_window2=random_policy_pscores[5],
         )
         #pdb.set_trace()
 
@@ -345,8 +279,6 @@ for round_test in settings:
             evaluation_policy_pscore_item_position=optimal_policy_pscores[1],
             evaluation_policy_pscore_cascade=optimal_policy_pscores[2],
             evaluation_policy_pscore_idp_window=optimal_policy_pscores[3],
-            evaluation_policy_pscore_idp_window_normal=optimal_policy_pscores[4],
-            evaluation_policy_pscore_idp_window2=optimal_policy_pscores[5],
         )
 
         # evaluate the estimation performances of OPE estimators 
@@ -359,8 +291,6 @@ for round_test in settings:
             evaluation_policy_pscore_item_position=anti_optimal_policy_pscores[1],
             evaluation_policy_pscore_cascade=anti_optimal_policy_pscores[2],
             evaluation_policy_pscore_idp_window=anti_optimal_policy_pscores[3],
-            evaluation_policy_pscore_idp_window_normal=anti_optimal_policy_pscores[4],
-            evaluation_policy_pscore_idp_window2=anti_optimal_policy_pscores[5],
         
         )
         print(relative_ee_for_random_evaluation_policy)
@@ -386,9 +316,6 @@ for round_test in settings:
                         relative_ee_for_dissimilar_evaluation_policy["se"]["rips"]]])
         rips_data = np.append(rips_data, row, axis=0)
 
-        row = np.array([[relative_ee_for_random_evaluation_policy["se"]["wiips"],
-                        relative_ee_for_similar_evaluation_policy["se"]["wiips"],
-                        relative_ee_for_dissimilar_evaluation_policy["se"]["wiips"]]])
         wiips_data = np.append(wiips_data, row, axis=0)
 
         row = np.array([[relative_ee_for_random_evaluation_policy["se"]["wiipsfull"],
@@ -396,32 +323,22 @@ for round_test in settings:
                         relative_ee_for_dissimilar_evaluation_policy["se"]["wiipsfull"]]])
         wiipsfull_data = np.append(wiipsfull_data, row, axis=0)
 
-        row = np.array([[relative_ee_for_random_evaluation_policy["se"]["wipss"],
-                        relative_ee_for_similar_evaluation_policy["se"]["wipss"],
-                        relative_ee_for_dissimilar_evaluation_policy["se"]["wipss"]]])
         wipss_data = np.append(wipss_data, row, axis=0)
 
     df = pd.DataFrame(sips_data, columns=["random", "similar", "dissimilar"])
     # Save the DataFrame to a file (e.g., CSV)
     #pdb.set_trace()
-    df.to_excel(f"slate_{len_list}/sips_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)
+    df.to_excel(f"slate_{len_list}/sips_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}_verify.xlsx", index=False)
 
     df = pd.DataFrame(iips_data, columns=["random", "similar", "dissimilar"])
     # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_{len_list}/iips_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)
+    df.to_excel(f"slate_{len_list}/iips_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}_verify.xlsx", index=False)
 
     df = pd.DataFrame(rips_data, columns=["random", "similar", "dissimilar"])
     # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_{len_list}/rips_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)
-
-    df = pd.DataFrame(wipss_data, columns=["random", "similar", "dissimilar"])
-    # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_{len_list}/wipss_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)
-
-    df = pd.DataFrame(wiips_data, columns=["random", "similar", "dissimilar"])
-    # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_{len_list}/wiips_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)
+    df.to_excel(f"slate_{len_list}/rips_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}_verify.xlsx", index=False)
 
     df = pd.DataFrame(wiipsfull_data, columns=["random", "similar", "dissimilar"])
     # Save the DataFrame to a file (e.g., CSV)
-    df.to_excel(f"slate_{len_list}/wiipsfull_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}.xlsx", index=False)
+    df.to_excel(f"slate_{len_list}/wiipsfull_{reward_structure}_linear_reward_function_{epsilon}_{len_list}_{n_rounds_test}_error_{seed_count}_verify.xlsx", index=False)
+ 
