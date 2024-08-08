@@ -71,7 +71,7 @@ for round_test in settings:
     wiips_data = np.empty((0, 3), dtype=object)
     wipss_data = np.empty((0, 3), dtype=object)
     wiipsfull_data = np.empty((0, 3), dtype=object)
-    for seed in range(seed_count):
+    for seed in range(9,seed_count):
         logging=False
         epsilon=0.5
         n_unique_action=10
